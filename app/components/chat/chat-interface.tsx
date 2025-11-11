@@ -1,14 +1,23 @@
 "use client"
 
 import * as React from "react"
+import { toast } from "sonner"
 import { useChatStore } from "@/lib/store"
 import { Message, MessageAvatar, MessageContent } from "@/components/prompt-kit/message"
 import { ChatContainerRoot, ChatContainerContent, ChatContainerScrollAnchor } from "@/components/prompt-kit/chat-container"
 import { PromptInput, PromptInputTextarea, PromptInputActions, PromptInputAction } from "@/components/prompt-kit/prompt-input"
 import { Button } from "@/components/ui/button"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
 import { Send, Paperclip, Sparkles } from "lucide-react"
 import { cn } from "@/lib/utils"
-import { AVAILABLE_MODELS } from "@/types"
+import { AVAILABLE_MODELS, Provider } from "@/types"
+import { detectArtifacts, hasArtifacts } from "@/lib/artifact-detector"
 
 export function ChatInterface() {
   const {
@@ -17,6 +26,7 @@ export function ChatInterface() {
     addMessage,
     updateMessage,
     createChat,
+    addArtifact,
   } = useChatStore()
 
   const [input, setInput] = React.useState("")
@@ -113,8 +123,34 @@ export function ChatInterface() {
           }
         }
       }
+
+      // Auto-detect and create artifacts from the response
+      if (assistantMessage && hasArtifacts(assistantMessage)) {
+        const detectedArtifacts = detectArtifacts(assistantMessage)
+
+        detectedArtifacts.forEach((artifact) => {
+          addArtifact(chatId, {
+            type: artifact.type,
+            title: artifact.title,
+            content: artifact.content,
+            language: artifact.language,
+          })
+        })
+
+        if (detectedArtifacts.length > 0) {
+          toast.success(
+            `Created ${detectedArtifacts.length} artifact${detectedArtifacts.length > 1 ? 's' : ''}`,
+            {
+              description: detectedArtifacts.map(a => a.title).join(", "),
+            }
+          )
+        }
+      }
     } catch (error) {
       console.error("Error:", error)
+      toast.error("Failed to get response", {
+        description: error instanceof Error ? error.message : "Please try again",
+      })
       addMessage(chatId, {
         role: "assistant",
         content: "Sorry, I encountered an error. Please try again.",
@@ -227,14 +263,59 @@ function EmptyState({ onNewChat }: { onNewChat: () => void }) {
 }
 
 function ModelSelector() {
-  const { getCurrentChat } = useChatStore()
+  const { getCurrentChat, currentChatId, chats, settings } = useChatStore()
   const currentChat = getCurrentChat()
 
   const currentModel = AVAILABLE_MODELS.find((m) => m.id === currentChat?.model)
 
+  const handleModelChange = (modelId: string) => {
+    const model = AVAILABLE_MODELS.find((m) => m.id === modelId)
+    if (!model || !currentChatId) return
+
+    // Update the chat's model and provider
+    useChatStore.setState((state) => ({
+      chats: state.chats.map((c) =>
+        c.id === currentChatId
+          ? { ...c, model: model.id, provider: model.provider }
+          : c
+      ),
+    }))
+
+    toast.success("Model changed", {
+      description: `Switched to ${model.name}`,
+    })
+  }
+
+  // Group models by provider
+  const openAIModels = AVAILABLE_MODELS.filter((m) => m.provider === "openai")
+  const anthropicModels = AVAILABLE_MODELS.filter((m) => m.provider === "anthropic")
+
   return (
-    <div className="flex items-center gap-2 text-sm text-muted-foreground">
-      <span>{currentModel?.name || "Select Model"}</span>
-    </div>
+    <Select
+      value={currentChat?.model || settings.defaultModel}
+      onValueChange={handleModelChange}
+    >
+      <SelectTrigger className="w-[200px] h-8">
+        <SelectValue placeholder="Select model" />
+      </SelectTrigger>
+      <SelectContent>
+        <div className="px-2 py-1.5 text-xs font-semibold text-muted-foreground">
+          OpenAI
+        </div>
+        {openAIModels.map((model) => (
+          <SelectItem key={model.id} value={model.id}>
+            {model.name}
+          </SelectItem>
+        ))}
+        <div className="px-2 py-1.5 text-xs font-semibold text-muted-foreground">
+          Anthropic
+        </div>
+        {anthropicModels.map((model) => (
+          <SelectItem key={model.id} value={model.id}>
+            {model.name}
+          </SelectItem>
+        ))}
+      </SelectContent>
+    </Select>
   )
 }
