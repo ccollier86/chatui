@@ -8,12 +8,78 @@ import { useChatStore } from "@/lib/store"
 import { Button } from "@/components/ui/button"
 import { Settings, FileCode, Menu } from "lucide-react"
 import { SettingsDialog } from "@/components/chat/settings-dialog"
+import { KeyboardShortcutsDialog } from "@/components/chat/keyboard-shortcuts-dialog"
+import { useKeyboardShortcuts } from "@/lib/use-keyboard-shortcuts"
+import { toast } from "sonner"
 
 export default function Home() {
   const [sidebarMinimized, setSidebarMinimized] = React.useState(false)
   const [sidebarOpen, setSidebarOpen] = React.useState(false)
   const [showSettings, setShowSettings] = React.useState(false)
-  const { isArtifactsPanelOpen, toggleArtifactsPanel } = useChatStore()
+  const [showKeyboardShortcuts, setShowKeyboardShortcuts] = React.useState(false)
+  const { isArtifactsPanelOpen, toggleArtifactsPanel, createChat, setCurrentChat } = useChatStore()
+
+  // Keyboard shortcuts
+  useKeyboardShortcuts([
+    {
+      key: "n",
+      ctrl: true,
+      handler: () => {
+        const newChatId = createChat()
+        setCurrentChat(newChatId)
+        toast.success("New chat created")
+      },
+      description: "Create new chat",
+    },
+    {
+      key: "k",
+      ctrl: true,
+      handler: () => {
+        setShowSettings(true)
+      },
+      description: "Open settings",
+    },
+    {
+      key: "b",
+      ctrl: true,
+      handler: () => {
+        toggleArtifactsPanel()
+        toast.success(isArtifactsPanelOpen ? "Artifacts panel closed" : "Artifacts panel opened")
+      },
+      description: "Toggle artifacts panel",
+    },
+    {
+      key: "/",
+      handler: () => {
+        // Dispatch custom event to focus chat input
+        window.dispatchEvent(new CustomEvent("focus-chat-input"))
+      },
+      description: "Focus chat input",
+    },
+    {
+      key: "?",
+      shift: true,
+      handler: () => {
+        setShowKeyboardShortcuts(true)
+      },
+      description: "Show keyboard shortcuts",
+    },
+    {
+      key: "Escape",
+      handler: () => {
+        if (showSettings) {
+          setShowSettings(false)
+        }
+        if (showKeyboardShortcuts) {
+          setShowKeyboardShortcuts(false)
+        }
+        if (sidebarOpen) {
+          setSidebarOpen(false)
+        }
+      },
+      description: "Close dialogs",
+    },
+  ])
 
   return (
     <div className="flex h-screen overflow-hidden bg-background">
@@ -50,6 +116,8 @@ export default function Home() {
               size="icon"
               onClick={() => setSidebarOpen(true)}
               className="h-8 w-8 lg:hidden"
+              aria-label="Open sidebar"
+              aria-expanded={sidebarOpen}
             >
               <Menu className="h-4 w-4" />
             </Button>
@@ -63,6 +131,8 @@ export default function Home() {
               size="icon"
               onClick={toggleArtifactsPanel}
               className="h-8 w-8"
+              aria-label="Toggle artifacts panel"
+              aria-pressed={isArtifactsPanelOpen}
             >
               <FileCode className="h-4 w-4" />
             </Button>
@@ -71,6 +141,8 @@ export default function Home() {
               size="icon"
               onClick={() => setShowSettings(true)}
               className="h-8 w-8"
+              aria-label="Open settings"
+              aria-haspopup="dialog"
             >
               <Settings className="h-4 w-4" />
             </Button>
@@ -88,6 +160,12 @@ export default function Home() {
 
       {/* Settings Dialog */}
       <SettingsDialog open={showSettings} onOpenChange={setShowSettings} />
+
+      {/* Keyboard Shortcuts Dialog */}
+      <KeyboardShortcutsDialog
+        open={showKeyboardShortcuts}
+        onOpenChange={setShowKeyboardShortcuts}
+      />
     </div>
   )
 }

@@ -63,49 +63,53 @@ interface PromptInputTextareaProps extends Omit<React.TextareaHTMLAttributes<HTM
   onChange?: (e: React.ChangeEvent<HTMLTextAreaElement>) => void
 }
 
-export function PromptInputTextarea({
-  maxHeight = 240,
-  disableAutosize = false,
-  className,
-  onKeyDown,
-  ...props
-}: PromptInputTextareaProps) {
-  const context = React.useContext(PromptInputContext)
+export const PromptInputTextarea = React.forwardRef<HTMLTextAreaElement, PromptInputTextareaProps>(
+  function PromptInputTextarea({
+    maxHeight = 240,
+    disableAutosize = false,
+    className,
+    onKeyDown,
+    ...props
+  }, ref) {
+    const context = React.useContext(PromptInputContext)
 
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-    if (e.key === "Enter" && !e.shiftKey) {
-      e.preventDefault()
-      if (context && !context.isLoading) {
-        context.onSubmit()
+    const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+      if (e.key === "Enter" && !e.shiftKey) {
+        e.preventDefault()
+        if (context && !context.isLoading) {
+          context.onSubmit()
+        }
       }
+      onKeyDown?.(e)
     }
-    onKeyDown?.(e)
-  }
 
-  const baseClassName = cn(
-    "w-full resize-none bg-transparent px-2 py-1 text-sm outline-none placeholder:text-muted-foreground disabled:opacity-50",
-    className
-  )
+    const baseClassName = cn(
+      "w-full resize-none bg-transparent px-2 py-1 text-sm outline-none placeholder:text-muted-foreground disabled:opacity-50",
+      className
+    )
 
-  if (disableAutosize) {
+    if (disableAutosize) {
+      return (
+        <textarea
+          ref={ref}
+          className={baseClassName}
+          onKeyDown={handleKeyDown}
+          {...props}
+        />
+      )
+    }
+
     return (
-      <textarea
+      <TextareaAutosize
+        ref={ref as any}
         className={baseClassName}
         onKeyDown={handleKeyDown}
-        {...props}
+        maxRows={10}
+        {...(props as any)}
       />
     )
   }
-
-  return (
-    <TextareaAutosize
-      className={baseClassName}
-      onKeyDown={handleKeyDown}
-      maxRows={10}
-      {...(props as any)}
-    />
-  )
-}
+)
 
 export function PromptInputActions({
   children,
