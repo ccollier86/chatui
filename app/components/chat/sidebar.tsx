@@ -18,6 +18,7 @@ import {
   Trash2,
 } from "lucide-react"
 import { formatDistanceToNow } from "date-fns"
+import { toast } from "sonner"
 
 interface SidebarProps {
   className?: string
@@ -169,6 +170,47 @@ interface ChatItemProps {
 
 function ChatItem({ chat, isActive, onClick, onDelete }: ChatItemProps) {
   const [showActions, setShowActions] = React.useState(false)
+  const [isEditing, setIsEditing] = React.useState(false)
+  const [editedTitle, setEditedTitle] = React.useState(chat.title)
+  const inputRef = React.useRef<HTMLInputElement>(null)
+  const { updateChatTitle } = useChatStore()
+
+  React.useEffect(() => {
+    if (isEditing && inputRef.current) {
+      inputRef.current.focus()
+      inputRef.current.select()
+    }
+  }, [isEditing])
+
+  const handleDoubleClick = (e: React.MouseEvent) => {
+    e.stopPropagation()
+    setIsEditing(true)
+    setEditedTitle(chat.title)
+  }
+
+  const handleSave = () => {
+    const trimmedTitle = editedTitle.trim()
+    if (trimmedTitle && trimmedTitle !== chat.title) {
+      updateChatTitle(chat.id, trimmedTitle)
+      toast.success("Chat renamed", {
+        description: `Renamed to "${trimmedTitle}"`,
+      })
+    }
+    setIsEditing(false)
+  }
+
+  const handleCancel = () => {
+    setEditedTitle(chat.title)
+    setIsEditing(false)
+  }
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === "Enter") {
+      handleSave()
+    } else if (e.key === "Escape") {
+      handleCancel()
+    }
+  }
 
   return (
     <div
@@ -181,12 +223,31 @@ function ChatItem({ chat, isActive, onClick, onDelete }: ChatItemProps) {
       onMouseLeave={() => setShowActions(false)}
     >
       <div className="flex-1 truncate">
-        <div className="truncate font-medium">{chat.title}</div>
+        {isEditing ? (
+          <input
+            ref={inputRef}
+            type="text"
+            value={editedTitle}
+            onChange={(e) => setEditedTitle(e.target.value)}
+            onBlur={handleSave}
+            onKeyDown={handleKeyDown}
+            onClick={(e) => e.stopPropagation()}
+            className="w-full rounded border border-input bg-background px-2 py-1 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-ring"
+          />
+        ) : (
+          <div
+            className="truncate font-medium"
+            onDoubleClick={handleDoubleClick}
+            title="Double-click to rename"
+          >
+            {chat.title}
+          </div>
+        )}
         <div className="text-xs text-muted-foreground">
           {chat.messages.length} messages
         </div>
       </div>
-      {showActions && (
+      {showActions && !isEditing && (
         <div className="flex items-center gap-1">
           <Button
             variant="ghost"
