@@ -1,0 +1,2 @@
+animated side bar
+-atomicaly structured so each item and section is its own component

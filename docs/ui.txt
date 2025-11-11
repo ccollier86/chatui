@@ -1,0 +1,3 @@
+shadcn - install the full the full latest package
+all packages used but be @latest 
+install all chadcn components
