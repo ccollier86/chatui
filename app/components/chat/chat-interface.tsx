@@ -53,7 +53,10 @@ export function ChatInterface() {
         },
         body: JSON.stringify({
           messages: [
-            ...(currentChat?.messages || []),
+            ...(currentChat?.messages || []).map(m => ({
+              role: m.role,
+              content: m.content
+            })),
             {
               role: "user",
               content: userMessage,
@@ -68,6 +71,7 @@ export function ChatInterface() {
         throw new Error("Failed to get response")
       }
 
+      // Handle AI SDK stream format
       const reader = response.body?.getReader()
       const decoder = new TextDecoder()
       let assistantMessage = ""
@@ -95,20 +99,16 @@ export function ChatInterface() {
         const lines = chunk.split("\n")
 
         for (const line of lines) {
-          if (line.startsWith("data: ")) {
-            const data = line.slice(6)
-            if (data === "[DONE]") continue
-
+          if (line.startsWith("0:")) {
+            // AI SDK stream format
+            const data = line.slice(2)
             try {
-              const json = JSON.parse(data)
-              if (json.content) {
-                assistantMessage += json.content
-                if (assistantMessageId) {
-                  updateMessage(chatId, assistantMessageId, assistantMessage)
-                }
+              assistantMessage += data
+              if (assistantMessageId) {
+                updateMessage(chatId, assistantMessageId, assistantMessage)
               }
             } catch (e) {
-              // Skip invalid JSON
+              // Skip parsing errors
             }
           }
         }
@@ -227,7 +227,7 @@ function EmptyState({ onNewChat }: { onNewChat: () => void }) {
 }
 
 function ModelSelector() {
-  const { getCurrentChat, settings } = useChatStore()
+  const { getCurrentChat } = useChatStore()
   const currentChat = getCurrentChat()
 
   const currentModel = AVAILABLE_MODELS.find((m) => m.id === currentChat?.model)

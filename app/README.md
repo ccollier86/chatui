@@ -4,17 +4,18 @@ A full-featured, production-ready chat interface built with Next.js 15, shadcn/u
 
 ## Features
 
-- ✅ **Multi-Provider Support**: Switch between OpenAI and Anthropic seamlessly
-- ✅ **Multi-Model Support**: Access GPT-4, Claude 3.5 Sonnet, and more
-- ✅ **Artifacts Panel**: View and manage generated code and documents
-- ✅ **Streaming Responses**: Real-time AI responses with streaming
-- ✅ **Chat History**: Persistent chat history with Zustand
-- ✅ **Modern UI**: Built with shadcn/ui and prompt-kit components
-- ✅ **Markdown Support**: Full markdown rendering with syntax highlighting
-- ✅ **Code Highlighting**: Beautiful code blocks with Shiki
-- ✅ **Responsive Design**: Works on desktop and mobile
-- ✅ **TypeScript**: Fully typed for better DX
-- ✅ **Next.js 15**: Latest Next.js with App Router and Turbopack
+- **Multi-Provider Support**: Switch between OpenAI and Anthropic seamlessly
+- **Multi-Model Support**: Access GPT-4, Claude 3.5 Sonnet, and more
+- **Artifacts Panel**: View and manage generated code and documents
+- **Streaming Responses**: Real-time AI responses with streaming
+- **Chat History**: Persistent chat history with Zustand
+- **Modern UI**: Built with shadcn/ui and prompt-kit components
+- **Markdown Support**: Full markdown rendering with syntax highlighting
+- **Code Highlighting**: Beautiful code blocks with Shiki
+- **Responsive Design**: Works on desktop and mobile
+- **TypeScript**: Fully typed for better DX
+- **Next.js 15**: Latest Next.js with App Router and Turbopack
+- **AI SDK Integration**: Built with Vercel AI SDK for easy provider expansion
 
 ## Tech Stack
 
@@ -22,7 +23,7 @@ A full-featured, production-ready chat interface built with Next.js 15, shadcn/u
 - **UI Components**: shadcn/ui + prompt-kit
 - **Styling**: Tailwind CSS
 - **State Management**: Zustand
-- **AI SDKs**: OpenAI SDK, Anthropic SDK
+- **AI SDK**: Vercel AI SDK (@ai-sdk/openai, @ai-sdk/anthropic)
 - **Code Highlighting**: Shiki
 - **Markdown**: react-markdown, remark-gfm
 
@@ -193,10 +194,29 @@ npm run lint
 
 ### Adding a New Provider
 
-1. Add provider type to \`types/index.ts\`
-2. Add models to \`AVAILABLE_MODELS\` array
-3. Implement streaming in \`app/api/chat/route.ts\`
-4. Update UI components to support the new provider
+Thanks to the Vercel AI SDK, adding new providers is straightforward:
+
+1. Install the provider package: `npm install @ai-sdk/[provider-name]`
+2. Add provider type to `types/index.ts`:
+   ```typescript
+   export type Provider = "openai" | "anthropic" | "google" // Add your provider
+   ```
+3. Add models to `AVAILABLE_MODELS` array in `types/index.ts`
+4. Update the API route in `app/api/chat/route.ts`:
+   ```typescript
+   import { createGoogle } from "@ai-sdk/google"
+
+   // Add to the if/else chain
+   else if (provider === "google") {
+     const apiKey = process.env.GOOGLE_API_KEY
+     if (!apiKey) throw new Error("Google API key not configured")
+     const google = createGoogle({ apiKey })
+     selectedModel = google(model)
+   }
+   ```
+5. Update UI components (settings dialog) to support the new provider
+
+The AI SDK supports many providers out of the box including Google, Mistral, Cohere, and more!
 
 ### Customizing Themes
 
