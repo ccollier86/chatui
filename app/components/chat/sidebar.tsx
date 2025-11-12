@@ -3,7 +3,6 @@
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
-import { AnimatedThemeToggle } from '@/components/ui/animated-theme-toggle';
 import { useChatStore } from '@/lib/store';
 import { cn } from '@/lib/utils';
 import {
@@ -51,7 +50,7 @@ export function Sidebar({ className, onToggle, isMinimized }: SidebarProps) {
 				role="navigation"
 				aria-label="Sidebar"
 			>
-				<div className="flex flex-col items-center justify-center gap-2 p-4">
+				<div className="flex items-center justify-center p-4">
 					<Button
 						variant="ghost"
 						size="icon"
@@ -61,7 +60,6 @@ export function Sidebar({ className, onToggle, isMinimized }: SidebarProps) {
 					>
 						<Code className="h-5 w-5" />
 					</Button>
-					<AnimatedThemeToggle className="h-8 w-8" />
 				</div>
 			</div>
 		);
@@ -76,18 +74,15 @@ export function Sidebar({ className, onToggle, isMinimized }: SidebarProps) {
 			{/* Header */}
 			<div className="flex items-center justify-between p-4">
 				<h2 className="text-lg font-semibold">LM Chat</h2>
-				<div className="flex items-center gap-1">
-					<AnimatedThemeToggle className="h-8 w-8" />
-					<Button
-						variant="ghost"
-						size="icon"
-						onClick={onToggle}
-						className="h-8 w-8"
-						aria-label="Minimize sidebar"
-					>
-						<Minimize2 className="h-4 w-4" />
-					</Button>
-				</div>
+				<Button
+					variant="ghost"
+					size="icon"
+					onClick={onToggle}
+					className="h-8 w-8"
+					aria-label="Minimize sidebar"
+				>
+					<Minimize2 className="h-4 w-4" />
+				</Button>
 			</div>
 
 			{/* New Chat Button */}

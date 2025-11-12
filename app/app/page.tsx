@@ -4,6 +4,7 @@ import * as React from "react"
 import { Sidebar } from "@/components/chat/sidebar"
 import { ChatInterface } from "@/components/chat/chat-interface"
 import { ArtifactsPanel } from "@/components/chat/artifacts-panel"
+import { AnimatedThemeToggle } from "@/components/ui/animated-theme-toggle"
 import { useChatStore } from "@/lib/store"
 import { Button } from "@/components/ui/button"
 import { Settings, FileCode, Menu } from "lucide-react"
@@ -136,6 +137,7 @@ export default function Home() {
             >
               <FileCode className="h-4 w-4" />
             </Button>
+            <AnimatedThemeToggle className="h-8 w-8" />
             <Button
               variant="ghost"
               size="icon"
