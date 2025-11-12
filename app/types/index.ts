@@ -1,6 +1,6 @@
 export type Role = "user" | "assistant" | "system"
 
-export type Provider = "openai" | "anthropic"
+export type Provider = "openai" | "anthropic" | "litellm"
 
 export interface Model {
   id: string
