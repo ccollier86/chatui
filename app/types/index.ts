@@ -40,7 +40,7 @@ export interface Chat {
 }
 
 export interface UserAvatarConfig {
-  style: "initials" | "emoji" | "image" | "gradient"
+  style: "initials" | "image" | "gradient"
   value: string
 }
 

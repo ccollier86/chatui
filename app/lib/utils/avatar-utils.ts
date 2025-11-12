@@ -75,11 +75,11 @@ export function getProviderFallback(provider: Provider, model?: string): string 
 /**
  * User avatar styles
  */
-export type UserAvatarStyle = "initials" | "emoji" | "image" | "gradient"
+export type UserAvatarStyle = "initials" | "image" | "gradient"
 
 export interface UserAvatarConfig {
   style: UserAvatarStyle
-  value: string // Initials, emoji, image URL, or gradient name
+  value: string // Initials, image URL, or gradient name
 }
 
 /**
@@ -95,11 +95,6 @@ export function getUserAvatar(config: UserAvatarConfig): {
       return {
         src: config.value,
         fallback: "U",
-      }
-
-    case "emoji":
-      return {
-        fallback: config.value || "👤",
       }
 
     case "initials":
@@ -146,13 +141,4 @@ export const AVATAR_GRADIENTS = [
   { name: "purple", label: "Purple", className: "bg-gradient-to-br from-purple-400 to-indigo-600" },
   { name: "fire", label: "Fire", className: "bg-gradient-to-br from-red-400 to-orange-600" },
   { name: "midnight", label: "Midnight", className: "bg-gradient-to-br from-slate-600 to-blue-900" },
-]
-
-/**
- * Popular emoji options for user avatars
- */
-export const AVATAR_EMOJIS = [
-  "👤", "😊", "🤖", "👨‍💻", "👩‍💻", "🧑‍💻",
-  "🦊", "🐱", "🐶", "🐼", "🦁", "🐯",
-  "🌟", "⭐", "✨", "💫", "🔥", "💎",
 ]
