@@ -45,7 +45,7 @@ export function ChatInterface() {
   const inputRef = React.useRef<HTMLTextAreaElement>(null)
   const fileInputRef = React.useRef<HTMLInputElement>(null)
 
-  const { uploadedFiles, addFiles, removeFile, clearFiles } = useUploadedFiles()
+  const { uploadedFiles, addFiles, addPaste, removeFile, clearFiles } = useUploadedFiles()
 
   const currentChat = getCurrentChat()
 
@@ -98,6 +98,29 @@ export function ChatInterface() {
     e.target.value = ""
   }
 
+  // Handle paste events for long text
+  const handlePaste = (e: React.ClipboardEvent<HTMLTextAreaElement>) => {
+    const pastedText = e.clipboardData.getData("text")
+
+    if (!pastedText) return
+
+    // Count lines in pasted text
+    const lines = pastedText.split("\n")
+    const lineCount = lines.length
+
+    // If paste has more than 40 lines, create artifact instead
+    if (lineCount > 40) {
+      e.preventDefault() // Prevent default paste behavior
+
+      addPaste(pastedText, lineCount)
+
+      toast.success("Long paste detected", {
+        description: `Created paste artifact with ${lineCount} lines`,
+      })
+    }
+    // For pastes <= 40 lines, allow default behavior (paste into textarea)
+  }
+
   const handleSubmit = async () => {
     if (!input.trim() || isLoading) return
 
@@ -109,14 +132,31 @@ export function ChatInterface() {
     const userMessage = input.trim()
     setInput("")
 
-    // Clear uploaded files after sending
-    // TODO: In future, send files with the message
+    // Build message content with paste artifacts
+    let messageContent = userMessage
+
+    // Include paste artifacts in the message
+    const pasteArtifacts = uploadedFiles.filter((item) => item.itemType === "paste")
+    if (pasteArtifacts.length > 0) {
+      const pasteContents = pasteArtifacts
+        .map((paste, index) => {
+          if (paste.itemType === "paste") {
+            return `\n\n<paste_artifact_${index + 1}>\n${paste.content}\n</paste_artifact_${index + 1}>`
+          }
+          return ""
+        })
+        .join("")
+      messageContent += pasteContents
+    }
+
+    // Clear uploaded files and pastes after sending
+    // TODO: In future, send actual files with the message
     clearFiles()
 
     // Add user message
     addMessage(chatId, {
       role: "user",
-      content: userMessage,
+      content: messageContent,
       model: currentChat?.model,
       provider: currentChat?.provider,
     })
@@ -137,7 +177,7 @@ export function ChatInterface() {
             })),
             {
               role: "user",
-              content: userMessage,
+              content: messageContent,
             },
           ],
           model: currentChat?.model || "claude-3-5-sonnet-20241022",
@@ -535,6 +575,7 @@ export function ChatInterface() {
                   ref={inputRef}
                   value={input}
                   onChange={(e) => setInput(e.target.value)}
+                  onPaste={handlePaste}
                   placeholder="Type a message..."
                   className="max-h-32"
                   aria-label="Chat message input"

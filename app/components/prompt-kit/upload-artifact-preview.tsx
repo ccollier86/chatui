@@ -1,20 +1,34 @@
 "use client"
 
 import * as React from "react"
-import { X, File, FileText, Image as ImageIcon, FileCode } from "lucide-react"
+import { X, File, FileText, Image as ImageIcon, FileCode, Type } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area"
 
+// Base interface for uploaded items
+export type UploadedItem = UploadedFile | UploadedPaste
+
+// File upload type
 export interface UploadedFile {
   id: string
+  itemType: "file"
   file: File
   preview?: string
   type: "image" | "document" | "text" | "code"
 }
 
+// Paste artifact type
+export interface UploadedPaste {
+  id: string
+  itemType: "paste"
+  content: string
+  lineCount: number
+  pasteNumber: number
+}
+
 interface UploadArtifactPreviewProps {
-  files: UploadedFile[]
+  files: UploadedItem[]
   onRemove: (id: string) => void
   className?: string
 }
@@ -30,10 +44,10 @@ export function UploadArtifactPreview({
     <div className={cn("border-t bg-muted/30 px-4 py-3", className)}>
       <ScrollArea className="w-full">
         <div className="flex gap-2">
-          {files.map((uploadedFile) => (
+          {files.map((item) => (
             <UploadArtifactItem
-              key={uploadedFile.id}
-              uploadedFile={uploadedFile}
+              key={item.id}
+              item={item}
               onRemove={onRemove}
             />
           ))}
@@ -45,14 +59,12 @@ export function UploadArtifactPreview({
 }
 
 interface UploadArtifactItemProps {
-  uploadedFile: UploadedFile
+  item: UploadedItem
   onRemove: (id: string) => void
 }
 
-function UploadArtifactItem({ uploadedFile, onRemove }: UploadArtifactItemProps) {
-  const { id, file, preview, type } = uploadedFile
-
-  const getIcon = () => {
+function UploadArtifactItem({ item, onRemove }: UploadArtifactItemProps) {
+  const getIcon = (type: UploadedFile["type"]) => {
     switch (type) {
       case "image":
         return <ImageIcon className="h-4 w-4" />
@@ -72,6 +84,46 @@ function UploadArtifactItem({ uploadedFile, onRemove }: UploadArtifactItemProps)
     const i = Math.floor(Math.log(bytes) / Math.log(k))
     return Math.round(bytes / Math.pow(k, i) * 100) / 100 + " " + sizes[i]
   }
+
+  // Render paste artifact
+  if (item.itemType === "paste") {
+    return (
+      <div className="relative flex-shrink-0">
+        <div className="group relative flex h-24 w-24 flex-col items-center justify-center overflow-hidden rounded-lg border bg-background transition-colors hover:border-primary">
+          {/* Remove button */}
+          <Button
+            variant="destructive"
+            size="icon"
+            className="absolute right-1 top-1 z-10 h-5 w-5 opacity-0 transition-opacity group-hover:opacity-100"
+            onClick={() => onRemove(item.id)}
+          >
+            <X className="h-3 w-3" />
+          </Button>
+
+          {/* Paste icon and preview */}
+          <div className="flex h-full w-full flex-col items-center justify-center gap-1 p-2">
+            <Type className="h-6 w-6 text-blue-600 dark:text-blue-400" />
+            <div className="text-center text-[10px] font-medium">
+              Paste {item.pasteNumber}
+            </div>
+          </div>
+        </div>
+
+        {/* Paste info */}
+        <div className="mt-1 w-24">
+          <div className="truncate text-xs font-medium">
+            Paste {item.pasteNumber}
+          </div>
+          <div className="text-[10px] text-muted-foreground">
+            {item.lineCount} lines
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  // Render file artifact
+  const { id, file, preview, type } = item
 
   return (
     <div className="relative flex-shrink-0">
@@ -104,7 +156,7 @@ function UploadArtifactItem({ uploadedFile, onRemove }: UploadArtifactItemProps)
           </div>
         ) : (
           <div className="flex h-full w-full flex-col items-center justify-center gap-1 p-2">
-            {getIcon()}
+            {getIcon(type)}
             <div className="w-full truncate text-center text-[10px] font-medium">
               {file.name}
             </div>
@@ -125,14 +177,15 @@ function UploadArtifactItem({ uploadedFile, onRemove }: UploadArtifactItemProps)
   )
 }
 
-// Hook to convert files to UploadedFile format
+// Hook to manage uploaded files and paste artifacts
 export function useUploadedFiles() {
-  const [uploadedFiles, setUploadedFiles] = React.useState<UploadedFile[]>([])
+  const [uploadedItems, setUploadedItems] = React.useState<UploadedItem[]>([])
+  const [pasteCounter, setPasteCounter] = React.useState(0)
 
   const addFiles = React.useCallback(async (files: File[]) => {
-    const newUploadedFiles = await Promise.all(
+    const newUploadedFiles: UploadedFile[] = await Promise.all(
       files.map(async (file) => {
-        const id = Math.random().toString(36).substring(7)
+        const id = crypto.randomUUID()
         let type: UploadedFile["type"] = "document"
         let preview: string | undefined
 
@@ -171,6 +224,7 @@ export function useUploadedFiles() {
 
         return {
           id,
+          itemType: "file" as const,
           file,
           preview,
           type,
@@ -178,34 +232,49 @@ export function useUploadedFiles() {
       })
     )
 
-    setUploadedFiles((prev) => [...prev, ...newUploadedFiles])
+    setUploadedItems((prev) => [...prev, ...newUploadedFiles])
   }, [])
 
-  const removeFile = React.useCallback((id: string) => {
-    setUploadedFiles((prev) => {
-      const file = prev.find((f) => f.id === id)
+  const addPaste = React.useCallback((content: string, lineCount: number) => {
+    const newPaste: UploadedPaste = {
+      id: crypto.randomUUID(),
+      itemType: "paste",
+      content,
+      lineCount,
+      pasteNumber: pasteCounter + 1,
+    }
+
+    setUploadedItems((prev) => [...prev, newPaste])
+    setPasteCounter((prev) => prev + 1)
+  }, [pasteCounter])
+
+  const removeItem = React.useCallback((id: string) => {
+    setUploadedItems((prev) => {
+      const item = prev.find((i) => i.id === id)
       // Revoke object URL if it's an image preview
-      if (file?.preview && file.type === "image") {
-        URL.revokeObjectURL(file.preview)
+      if (item?.itemType === "file" && item.preview && item.type === "image") {
+        URL.revokeObjectURL(item.preview)
       }
-      return prev.filter((f) => f.id !== id)
+      return prev.filter((i) => i.id !== id)
     })
   }, [])
 
-  const clearFiles = React.useCallback(() => {
+  const clearAll = React.useCallback(() => {
     // Revoke all object URLs
-    uploadedFiles.forEach((file) => {
-      if (file.preview && file.type === "image") {
-        URL.revokeObjectURL(file.preview)
+    uploadedItems.forEach((item) => {
+      if (item.itemType === "file" && item.preview && item.type === "image") {
+        URL.revokeObjectURL(item.preview)
       }
     })
-    setUploadedFiles([])
-  }, [uploadedFiles])
+    setUploadedItems([])
+    setPasteCounter(0)
+  }, [uploadedItems])
 
   return {
-    uploadedFiles,
+    uploadedFiles: uploadedItems, // Keep old name for backward compatibility
     addFiles,
-    removeFile,
-    clearFiles,
+    addPaste,
+    removeFile: removeItem, // Keep old name for backward compatibility
+    clearFiles: clearAll, // Keep old name for backward compatibility
   }
 }
