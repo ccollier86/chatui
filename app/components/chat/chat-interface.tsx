@@ -21,7 +21,7 @@ import {
 } from "@/components/ui/select"
 import { Send, Paperclip, Sparkles, Copy, RotateCw, Trash2 } from "lucide-react"
 import { cn } from "@/lib/utils"
-import { AVAILABLE_MODELS, Provider } from "@/types"
+import { Provider } from "@/types"
 import { detectArtifacts, hasArtifacts } from "@/lib/artifact-detector"
 import { parseAPIError, retryWithBackoff } from "@/lib/error-handler"
 
@@ -34,6 +34,7 @@ export function ChatInterface() {
     createChat,
     addArtifact,
     deleteMessage,
+    fetchModels,
   } = useChatStore()
 
   const [input, setInput] = React.useState("")
@@ -45,6 +46,11 @@ export function ChatInterface() {
   const { uploadedFiles, addFiles, removeFile, clearFiles } = useUploadedFiles()
 
   const currentChat = getCurrentChat()
+
+  // Fetch models on mount
+  React.useEffect(() => {
+    fetchModels()
+  }, [fetchModels])
 
   // Listen for focus input event
   React.useEffect(() => {
@@ -572,13 +578,13 @@ function EmptyState({
 }
 
 function ModelSelector() {
-  const { getCurrentChat, currentChatId, chats, settings } = useChatStore()
+  const { getCurrentChat, currentChatId, chats, settings, availableModels } = useChatStore()
   const currentChat = getCurrentChat()
 
-  const currentModel = AVAILABLE_MODELS.find((m) => m.id === currentChat?.model)
+  const currentModel = availableModels.find((m) => m.id === currentChat?.model)
 
   const handleModelChange = (modelId: string) => {
-    const model = AVAILABLE_MODELS.find((m) => m.id === modelId)
+    const model = availableModels.find((m) => m.id === modelId)
     if (!model || !currentChatId) return
 
     // Update the chat's model and provider
@@ -595,9 +601,37 @@ function ModelSelector() {
     })
   }
 
-  // Group models by provider
-  const openAIModels = AVAILABLE_MODELS.filter((m) => m.provider === "openai")
-  const anthropicModels = AVAILABLE_MODELS.filter((m) => m.provider === "anthropic")
+  // Group models by provider dynamically
+  const modelsByProvider = availableModels.reduce((acc, model) => {
+    if (!acc[model.provider]) {
+      acc[model.provider] = []
+    }
+    acc[model.provider].push(model)
+    return acc
+  }, {} as Record<string, typeof availableModels>)
+
+  // Get unique providers in a consistent order
+  const providers = Object.keys(modelsByProvider).sort((a, b) => {
+    // Order: openai, anthropic, litellm, others
+    const order = { openai: 0, anthropic: 1, litellm: 2 }
+    const aOrder = order[a as keyof typeof order] ?? 99
+    const bOrder = order[b as keyof typeof order] ?? 99
+    if (aOrder !== bOrder) return aOrder - bOrder
+    return a.localeCompare(b)
+  })
+
+  // Legacy grouping for backward compatibility
+  const openAIModels = availableModels.filter((m) => m.provider === "openai")
+  const anthropicModels = availableModels.filter((m) => m.provider === "anthropic")
+  const litellmModels = availableModels.filter((m) => m.provider === "litellm")
+
+  // Helper to capitalize provider names
+  const formatProviderName = (provider: string) => {
+    if (provider === "openai") return "OpenAI"
+    if (provider === "anthropic") return "Anthropic"
+    if (provider === "litellm") return "LiteLLM"
+    return provider.charAt(0).toUpperCase() + provider.slice(1)
+  }
 
   return (
     <Select
@@ -608,21 +642,17 @@ function ModelSelector() {
         <SelectValue placeholder="Select model" />
       </SelectTrigger>
       <SelectContent>
-        <div className="px-2 py-1.5 text-xs font-semibold text-muted-foreground">
-          OpenAI
-        </div>
-        {openAIModels.map((model) => (
-          <SelectItem key={model.id} value={model.id}>
-            {model.name}
-          </SelectItem>
-        ))}
-        <div className="px-2 py-1.5 text-xs font-semibold text-muted-foreground">
-          Anthropic
-        </div>
-        {anthropicModels.map((model) => (
-          <SelectItem key={model.id} value={model.id}>
-            {model.name}
-          </SelectItem>
+        {providers.map((provider) => (
+          <React.Fragment key={provider}>
+            <div className="px-2 py-1.5 text-xs font-semibold text-muted-foreground">
+              {formatProviderName(provider)}
+            </div>
+            {modelsByProvider[provider].map((model) => (
+              <SelectItem key={model.id} value={model.id}>
+                {model.name}
+              </SelectItem>
+            ))}
+          </React.Fragment>
         ))}
       </SelectContent>
     </Select>

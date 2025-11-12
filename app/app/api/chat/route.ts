@@ -1,13 +1,14 @@
 import { createOpenAI } from "@ai-sdk/openai"
 import { createAnthropic } from "@ai-sdk/anthropic"
 import { streamText, CoreMessage } from "ai"
+import { litellmAdapter } from "@/lib/adapters/litellm-adapter"
 
 export const runtime = "edge"
 
 interface ChatRequest {
   messages: CoreMessage[]
   model: string
-  provider: "openai" | "anthropic"
+  provider: "openai" | "anthropic" | "litellm"
 }
 
 export async function POST(req: Request) {
@@ -45,6 +46,25 @@ export async function POST(req: Request) {
       }
       const anthropic = createAnthropic({ apiKey })
       selectedModel = anthropic(model)
+    } else if (provider === "litellm") {
+      // LiteLLM: Single adapter for all providers (OpenAI, Anthropic, Google, Meta, etc.)
+      if (!litellmAdapter.isConfigured()) {
+        return new Response(
+          JSON.stringify({
+            error: "LiteLLM is not configured. Set LITELLM_ENABLED=true and LITELLM_BASE_URL in your environment variables.",
+          }),
+          { status: 500, headers: { "Content-Type": "application/json" } }
+        )
+      }
+
+      const config = litellmAdapter.getConfig()
+      const litellm = createOpenAI({
+        baseURL: config.baseURL,
+        apiKey: config.apiKey || "dummy-key", // Some LiteLLM setups don't require auth
+        name: "litellm", // Custom provider name
+      })
+
+      selectedModel = litellm(model)
     } else {
       return new Response(
         JSON.stringify({ error: `Unsupported provider: ${provider}` }),

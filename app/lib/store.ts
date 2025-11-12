@@ -1,6 +1,6 @@
 import { create } from "zustand"
 import { persist } from "zustand/middleware"
-import { Chat, Message, Artifact, AppSettings, Provider, AVAILABLE_MODELS } from "@/types"
+import { Chat, Message, Artifact, AppSettings, Provider, AVAILABLE_MODELS, Model } from "@/types"
 
 interface ChatState {
   chats: Chat[]
@@ -8,6 +8,9 @@ interface ChatState {
   settings: AppSettings
   selectedArtifact: Artifact | null
   isArtifactsPanelOpen: boolean
+  availableModels: Model[]
+  modelsLoading: boolean
+  modelsError: string | null
 
   // Chat actions
   createChat: (model?: string, provider?: Provider) => string
@@ -27,6 +30,10 @@ interface ChatState {
 
   // Settings actions
   updateSettings: (settings: Partial<AppSettings>) => void
+
+  // Model actions
+  fetchModels: () => Promise<void>
+  refreshModels: () => Promise<void>
 
   // Getters
   getCurrentChat: () => Chat | null
@@ -54,6 +61,9 @@ export const useChatStore = create<ChatState>()(
       },
       selectedArtifact: null,
       isArtifactsPanelOpen: false,
+      availableModels: AVAILABLE_MODELS, // Start with hardcoded models
+      modelsLoading: false,
+      modelsError: null,
 
       createChat: (model, provider) => {
         const newChat: Chat = {
@@ -188,6 +198,66 @@ export const useChatStore = create<ChatState>()(
         set((state) => ({
           settings: { ...state.settings, ...newSettings },
         }))
+      },
+
+      fetchModels: async () => {
+        const state = get()
+
+        // Don't fetch if already loading or if we already have models
+        if (state.modelsLoading || (state.availableModels.length > AVAILABLE_MODELS.length)) {
+          return
+        }
+
+        set({ modelsLoading: true, modelsError: null })
+
+        try {
+          const response = await fetch("/api/models")
+
+          if (!response.ok) {
+            throw new Error(`Failed to fetch models: ${response.statusText}`)
+          }
+
+          const models: Model[] = await response.json()
+
+          set({
+            availableModels: models,
+            modelsLoading: false,
+            modelsError: null,
+          })
+        } catch (error: any) {
+          console.error("Error fetching models:", error)
+          set({
+            modelsLoading: false,
+            modelsError: error.message || "Failed to fetch models",
+          })
+        }
+      },
+
+      refreshModels: async () => {
+        set({ modelsLoading: true, modelsError: null })
+
+        try {
+          const response = await fetch("/api/models")
+
+          if (!response.ok) {
+            throw new Error(`Failed to fetch models: ${response.statusText}`)
+          }
+
+          const models: Model[] = await response.json()
+
+          set({
+            availableModels: models,
+            modelsLoading: false,
+            modelsError: null,
+          })
+        } catch (error: any) {
+          console.error("Error refreshing models:", error)
+          set({
+            modelsLoading: false,
+            modelsError: error.message || "Failed to refresh models",
+            // Keep existing models on error
+          })
+        }
       },
 
       getCurrentChat: () => {
