@@ -10,6 +10,7 @@ import { Loader } from "@/components/prompt-kit/loader"
 import { ScrollButton } from "@/components/prompt-kit/scroll-button"
 import { FileUpload, FileUploadTrigger, FileUploadContent } from "@/components/prompt-kit/file-upload"
 import { UploadArtifactPreview, useUploadedFiles } from "@/components/prompt-kit/upload-artifact-preview"
+import { PromptSuggestion } from "@/components/prompt-kit/prompt-suggestion"
 import { Button } from "@/components/ui/button"
 import {
   Select,
@@ -357,7 +358,17 @@ export function ChatInterface() {
   }
 
   if (!currentChatId) {
-    return <EmptyState onNewChat={() => createChat()} />
+    return (
+      <EmptyState
+        onNewChat={() => createChat()}
+        onSuggestionClick={(suggestion) => {
+          const chatId = createChat()
+          setInput(suggestion)
+          // Focus input after creating chat
+          setTimeout(() => inputRef.current?.focus(), 100)
+        }}
+      />
+    )
   }
 
   return (
@@ -510,18 +521,51 @@ export function ChatInterface() {
   )
 }
 
-function EmptyState({ onNewChat }: { onNewChat: () => void }) {
+function EmptyState({
+  onNewChat,
+  onSuggestionClick,
+}: {
+  onNewChat: () => void
+  onSuggestionClick: (suggestion: string) => void
+}) {
+  const suggestions = [
+    "Explain quantum computing in simple terms",
+    "Write a Python function to reverse a string",
+    "What are the benefits of TypeScript over JavaScript?",
+    "Help me debug a React component",
+    "Create a REST API endpoint in Node.js",
+    "Explain the difference between var, let, and const",
+  ]
+
   return (
-    <div className="flex h-full flex-col items-center justify-center gap-4 text-center">
-      <Sparkles className="h-12 w-12 text-muted-foreground" />
-      <div>
-        <h2 className="text-2xl font-semibold">Start a conversation</h2>
-        <p className="text-muted-foreground">
-          Choose a model and start chatting
-        </p>
+    <div className="flex h-full flex-col items-center justify-center gap-6 px-4">
+      <div className="flex flex-col items-center gap-4 text-center">
+        <Sparkles className="h-12 w-12 text-muted-foreground" />
+        <div>
+          <h2 className="text-2xl font-semibold">Start a conversation</h2>
+          <p className="text-muted-foreground">
+            Choose a model and start chatting, or try a suggestion below
+          </p>
+        </div>
       </div>
-      <Button onClick={onNewChat} size="lg">
-        New Chat
+
+      {/* Prompt Suggestions */}
+      <div className="grid max-w-2xl grid-cols-1 gap-2 sm:grid-cols-2">
+        {suggestions.map((suggestion, index) => (
+          <PromptSuggestion
+            key={index}
+            variant="outline"
+            size="lg"
+            className="h-auto whitespace-normal px-4 py-3 text-left font-normal"
+            onClick={() => onSuggestionClick(suggestion)}
+          >
+            {suggestion}
+          </PromptSuggestion>
+        ))}
+      </div>
+
+      <Button onClick={onNewChat} size="lg" variant="ghost">
+        Or start a new chat
       </Button>
     </div>
   )
