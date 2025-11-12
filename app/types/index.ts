@@ -39,10 +39,16 @@ export interface Chat {
   artifacts: Artifact[]
 }
 
+export interface UserAvatarConfig {
+  style: "initials" | "image" | "gradient"
+  value: string
+}
+
 export interface AppSettings {
   theme: "light" | "dark" | "system"
   defaultProvider: Provider
   defaultModel: string
+  userAvatar: UserAvatarConfig
   apiKeys: {
     openai?: string
     anthropic?: string
