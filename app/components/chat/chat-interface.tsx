@@ -24,6 +24,7 @@ import { cn } from "@/lib/utils"
 import { Provider } from "@/types"
 import { detectArtifacts, hasArtifacts } from "@/lib/artifact-detector"
 import { parseAPIError, retryWithBackoff } from "@/lib/error-handler"
+import { getProviderAvatar, getProviderFallback, getUserAvatar } from "@/lib/utils/avatar-utils"
 
 export function ChatInterface() {
   const {
@@ -35,6 +36,7 @@ export function ChatInterface() {
     addArtifact,
     deleteMessage,
     fetchModels,
+    settings,
   } = useChatStore()
 
   const [input, setInput] = React.useState("")
@@ -390,14 +392,25 @@ export function ChatInterface() {
       {/* Messages */}
       <ChatContainerRoot className="relative flex-1" role="log" aria-live="polite" aria-atomic="false" aria-label="Chat messages">
         <ChatContainerContent className="space-y-6 py-6">
-          {currentChat?.messages.map((message) => (
-            <Message key={message.id} className="animate-slide-in-up">
-              <MessageAvatar
-                fallback={message.role === "user" ? "U" : "AI"}
-                className={cn(
-                  message.role === "assistant" && "bg-primary text-primary-foreground"
-                )}
-              />
+          {currentChat?.messages.map((message) => {
+            // Get appropriate avatar based on role
+            const avatarProps = message.role === "user"
+              ? getUserAvatar(settings.userAvatar)
+              : {
+                  src: getProviderAvatar(message.provider || currentChat.provider, message.model || currentChat.model),
+                  fallback: getProviderFallback(message.provider || currentChat.provider, message.model || currentChat.model),
+                  className: "bg-primary text-primary-foreground",
+                }
+
+            return (
+              <Message key={message.id} className="animate-slide-in-up">
+                <MessageAvatar
+                  {...avatarProps}
+                  className={cn(
+                    avatarProps.className,
+                    message.role === "user" && "text-primary-foreground"
+                  )}
+                />
               <div className="flex-1 space-y-2">
                 <MessageContent markdown>
                   {message.content}
@@ -443,11 +456,13 @@ export function ChatInterface() {
                 </MessageActions>
               </div>
             </Message>
-          ))}
+            )
+          })}
           {isLoading && (
             <Message className="animate-slide-in-up">
               <MessageAvatar
-                fallback="AI"
+                src={getProviderAvatar(currentChat?.provider || "anthropic", currentChat?.model)}
+                fallback={getProviderFallback(currentChat?.provider || "anthropic", currentChat?.model)}
                 className="bg-primary text-primary-foreground"
               />
               <MessageContent>

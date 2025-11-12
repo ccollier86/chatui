@@ -57,6 +57,10 @@ export const useChatStore = create<ChatState>()(
         theme: "system",
         defaultProvider: "anthropic",
         defaultModel: "claude-3-5-sonnet-20241022",
+        userAvatar: {
+          style: "initials",
+          value: "U",
+        },
         apiKeys: {},
       },
       selectedArtifact: null,
