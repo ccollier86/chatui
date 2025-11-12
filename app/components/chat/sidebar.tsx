@@ -39,13 +39,14 @@ export function Sidebar({ className, onToggle, isMinimized }: SidebarProps) {
 
   if (isMinimized) {
     return (
-      <div className={cn("flex h-full w-16 flex-col border-r bg-background", className)}>
+      <div className={cn("flex h-full w-16 flex-col border-r bg-background", className)} role="navigation" aria-label="Sidebar">
         <div className="flex items-center justify-center p-4">
           <Button
             variant="ghost"
             size="icon"
             onClick={onToggle}
             className="h-8 w-8"
+            aria-label="Expand sidebar"
           >
             <Code className="h-5 w-5" />
           </Button>
@@ -55,7 +56,7 @@ export function Sidebar({ className, onToggle, isMinimized }: SidebarProps) {
   }
 
   return (
-    <div className={cn("flex h-full w-64 flex-col border-r bg-background", className)}>
+    <div className={cn("flex h-full w-64 flex-col border-r bg-background", className)} role="navigation" aria-label="Sidebar">
       {/* Header */}
       <div className="flex items-center justify-between p-4">
         <h2 className="text-lg font-semibold">LM Chat</h2>
@@ -64,6 +65,7 @@ export function Sidebar({ className, onToggle, isMinimized }: SidebarProps) {
           size="icon"
           onClick={onToggle}
           className="h-8 w-8"
+          aria-label="Minimize sidebar"
         >
           <Minimize2 className="h-4 w-4" />
         </Button>
@@ -75,6 +77,7 @@ export function Sidebar({ className, onToggle, isMinimized }: SidebarProps) {
           onClick={handleNewChat}
           className="w-full justify-start gap-2 bg-primary/10 text-primary hover:bg-primary/20"
           variant="ghost"
+          aria-label="Create new chat"
         >
           <PlusCircle className="h-4 w-4" />
           New chat
@@ -221,6 +224,16 @@ function ChatItem({ chat, isActive, onClick, onDelete }: ChatItemProps) {
       onClick={onClick}
       onMouseEnter={() => setShowActions(true)}
       onMouseLeave={() => setShowActions(false)}
+      role="button"
+      tabIndex={0}
+      aria-label={`${chat.title} - ${chat.messages.length} messages`}
+      aria-current={isActive ? "page" : undefined}
+      onKeyDown={(e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault()
+          onClick()
+        }
+      }}
     >
       <div className="flex-1 truncate">
         {isEditing ? (
@@ -257,6 +270,7 @@ function ChatItem({ chat, isActive, onClick, onDelete }: ChatItemProps) {
               e.stopPropagation()
               // Open more options
             }}
+            aria-label="More options"
           >
             <MoreHorizontal className="h-3 w-3" />
           </Button>
@@ -268,6 +282,7 @@ function ChatItem({ chat, isActive, onClick, onDelete }: ChatItemProps) {
               e.stopPropagation()
               onDelete()
             }}
+            aria-label={`Delete ${chat.title}`}
           >
             <Trash2 className="h-3 w-3" />
           </Button>

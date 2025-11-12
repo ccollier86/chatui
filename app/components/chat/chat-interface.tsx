@@ -18,6 +18,8 @@ import { Send, Paperclip, Sparkles, Copy, RotateCw, Trash2 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { AVAILABLE_MODELS, Provider } from "@/types"
 import { detectArtifacts, hasArtifacts } from "@/lib/artifact-detector"
+import { Skeleton } from "@/components/ui/skeleton"
+import { parseAPIError, retryWithBackoff } from "@/lib/error-handler"
 
 export function ChatInterface() {
   const {
@@ -33,8 +35,18 @@ export function ChatInterface() {
   const [input, setInput] = React.useState("")
   const [isLoading, setIsLoading] = React.useState(false)
   const [regeneratingMessageId, setRegeneratingMessageId] = React.useState<string | null>(null)
+  const inputRef = React.useRef<HTMLTextAreaElement>(null)
 
   const currentChat = getCurrentChat()
+
+  // Listen for focus input event
+  React.useEffect(() => {
+    const handleFocusInput = () => {
+      inputRef.current?.focus()
+    }
+    window.addEventListener("focus-chat-input", handleFocusInput)
+    return () => window.removeEventListener("focus-chat-input", handleFocusInput)
+  }, [])
 
   const handleSubmit = async () => {
     if (!input.trim() || isLoading) return
@@ -150,15 +162,28 @@ export function ChatInterface() {
       }
     } catch (error) {
       console.error("Error:", error)
-      toast.error("Failed to get response", {
-        description: error instanceof Error ? error.message : "Please try again",
+      const apiError = parseAPIError(error)
+
+      toast.error(apiError.message, {
+        description: apiError.suggestedAction,
+        action: apiError.retryable ? {
+          label: "Retry",
+          onClick: () => {
+            setInput(userMessage)
+            setTimeout(() => handleSubmit(), 100)
+          },
+        } : undefined,
       })
-      addMessage(chatId, {
-        role: "assistant",
-        content: "Sorry, I encountered an error. Please try again.",
-        model: currentChat?.model,
-        provider: currentChat?.provider,
-      })
+
+      // Only add error message to chat if it's not retryable
+      if (!apiError.retryable) {
+        addMessage(chatId, {
+          role: "assistant",
+          content: `Error: ${apiError.message}. ${apiError.suggestedAction}`,
+          model: currentChat?.model,
+          provider: currentChat?.provider,
+        })
+      }
     } finally {
       setIsLoading(false)
     }
@@ -287,8 +312,14 @@ export function ChatInterface() {
       toast.success("Response regenerated")
     } catch (error) {
       console.error("Error:", error)
-      toast.error("Failed to regenerate", {
-        description: error instanceof Error ? error.message : "Please try again",
+      const apiError = parseAPIError(error)
+
+      toast.error(apiError.message, {
+        description: apiError.suggestedAction,
+        action: apiError.retryable ? {
+          label: "Retry",
+          onClick: () => handleRegenerateResponse(messageId),
+        } : undefined,
       })
     } finally {
       setRegeneratingMessageId(null)
@@ -304,16 +335,16 @@ export function ChatInterface() {
       {/* Chat Header */}
       <div className="border-b px-4 py-3">
         <div className="flex items-center justify-between">
-          <h2 className="font-semibold">{currentChat?.title || "New Chat"}</h2>
+          <h2 className="font-semibold" id="chat-title">{currentChat?.title || "New Chat"}</h2>
           <ModelSelector />
         </div>
       </div>
 
       {/* Messages */}
-      <ChatContainerRoot className="flex-1">
+      <ChatContainerRoot className="flex-1" role="log" aria-live="polite" aria-atomic="false" aria-label="Chat messages">
         <ChatContainerContent className="space-y-6 py-6">
           {currentChat?.messages.map((message) => (
-            <Message key={message.id}>
+            <Message key={message.id} className="animate-slide-in-up">
               <MessageAvatar
                 fallback={message.role === "user" ? "U" : "AI"}
                 className={cn(
@@ -325,13 +356,14 @@ export function ChatInterface() {
                   {message.content}
                 </MessageContent>
                 {/* Message Actions */}
-                <div className="flex items-center gap-1 opacity-0 transition-opacity group-hover:opacity-100">
+                <div className="flex items-center gap-1 opacity-0 transition-opacity group-hover:opacity-100" role="toolbar" aria-label="Message actions">
                   <Button
                     variant="ghost"
                     size="icon"
                     className="h-7 w-7"
                     onClick={() => handleCopyMessage(message.content)}
                     title="Copy message"
+                    aria-label="Copy message to clipboard"
                   >
                     <Copy className="h-3.5 w-3.5" />
                   </Button>
@@ -343,6 +375,8 @@ export function ChatInterface() {
                       onClick={() => handleRegenerateResponse(message.id)}
                       disabled={regeneratingMessageId === message.id}
                       title="Regenerate response"
+                      aria-label="Regenerate assistant response"
+                      aria-busy={regeneratingMessageId === message.id}
                     >
                       <RotateCw className={cn(
                         "h-3.5 w-3.5",
@@ -356,6 +390,7 @@ export function ChatInterface() {
                     className="h-7 w-7 text-destructive hover:text-destructive"
                     onClick={() => handleDeleteMessage(message.id)}
                     title="Delete message"
+                    aria-label="Delete message"
                   >
                     <Trash2 className="h-3.5 w-3.5" />
                   </Button>
@@ -364,18 +399,19 @@ export function ChatInterface() {
             </Message>
           ))}
           {isLoading && (
-            <Message>
+            <Message className="animate-slide-in-up">
               <MessageAvatar
                 fallback="AI"
                 className="bg-primary text-primary-foreground"
               />
-              <MessageContent>
-                <div className="flex items-center gap-2">
-                  <div className="h-2 w-2 animate-bounce rounded-full bg-primary" style={{ animationDelay: "0ms" }} />
-                  <div className="h-2 w-2 animate-bounce rounded-full bg-primary" style={{ animationDelay: "150ms" }} />
-                  <div className="h-2 w-2 animate-bounce rounded-full bg-primary" style={{ animationDelay: "300ms" }} />
+              <div className="flex-1 space-y-2" role="status" aria-live="polite" aria-label="AI is thinking">
+                <div className="space-y-2">
+                  <Skeleton className="h-4 w-full" />
+                  <Skeleton className="h-4 w-11/12" />
+                  <Skeleton className="h-4 w-10/12" />
                 </div>
-              </MessageContent>
+                <span className="sr-only">AI is thinking...</span>
+              </div>
             </Message>
           )}
         </ChatContainerContent>
@@ -391,12 +427,15 @@ export function ChatInterface() {
           onSubmit={handleSubmit}
         >
           <PromptInputTextarea
+            ref={inputRef}
             placeholder="Type a message..."
             className="max-h-32"
+            aria-label="Chat message input"
+            aria-describedby="chat-title"
           />
           <PromptInputActions>
             <PromptInputAction tooltip="Attach file">
-              <Button variant="ghost" size="icon" className="h-8 w-8">
+              <Button variant="ghost" size="icon" className="h-8 w-8" aria-label="Attach file" disabled>
                 <Paperclip className="h-4 w-4" />
               </Button>
             </PromptInputAction>
@@ -406,6 +445,7 @@ export function ChatInterface() {
               size="icon"
               className="h-8 w-8"
               disabled={!input.trim() || isLoading}
+              aria-label="Send message"
             >
               <Send className="h-4 w-4" />
             </Button>
