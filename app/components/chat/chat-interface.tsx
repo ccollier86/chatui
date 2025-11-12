@@ -3,9 +3,13 @@
 import * as React from "react"
 import { toast } from "sonner"
 import { useChatStore } from "@/lib/store"
-import { Message, MessageAvatar, MessageContent } from "@/components/prompt-kit/message"
+import { Message, MessageAvatar, MessageContent, MessageActions, MessageAction } from "@/components/prompt-kit/message"
 import { ChatContainerRoot, ChatContainerContent, ChatContainerScrollAnchor } from "@/components/prompt-kit/chat-container"
 import { PromptInput, PromptInputTextarea, PromptInputActions, PromptInputAction } from "@/components/prompt-kit/prompt-input"
+import { Loader } from "@/components/prompt-kit/loader"
+import { ScrollButton } from "@/components/prompt-kit/scroll-button"
+import { FileUpload, FileUploadTrigger, FileUploadContent } from "@/components/prompt-kit/file-upload"
+import { UploadArtifactPreview, useUploadedFiles } from "@/components/prompt-kit/upload-artifact-preview"
 import { Button } from "@/components/ui/button"
 import {
   Select,
@@ -18,7 +22,6 @@ import { Send, Paperclip, Sparkles, Copy, RotateCw, Trash2 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { AVAILABLE_MODELS, Provider } from "@/types"
 import { detectArtifacts, hasArtifacts } from "@/lib/artifact-detector"
-import { Skeleton } from "@/components/ui/skeleton"
 import { parseAPIError, retryWithBackoff } from "@/lib/error-handler"
 
 export function ChatInterface() {
@@ -36,6 +39,9 @@ export function ChatInterface() {
   const [isLoading, setIsLoading] = React.useState(false)
   const [regeneratingMessageId, setRegeneratingMessageId] = React.useState<string | null>(null)
   const inputRef = React.useRef<HTMLTextAreaElement>(null)
+  const fileInputRef = React.useRef<HTMLInputElement>(null)
+
+  const { uploadedFiles, addFiles, removeFile, clearFiles } = useUploadedFiles()
 
   const currentChat = getCurrentChat()
 
@@ -48,6 +54,26 @@ export function ChatInterface() {
     return () => window.removeEventListener("focus-chat-input", handleFocusInput)
   }, [])
 
+  // Handle file selection
+  const handleFileSelect = (files: File[]) => {
+    addFiles(files)
+  }
+
+  // Handle attach button click
+  const handleAttachClick = () => {
+    fileInputRef.current?.click()
+  }
+
+  // Handle file input change
+  const handleFileInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || [])
+    if (files.length > 0) {
+      addFiles(files)
+    }
+    // Reset input so same file can be selected again
+    e.target.value = ""
+  }
+
   const handleSubmit = async () => {
     if (!input.trim() || isLoading) return
 
@@ -58,6 +84,10 @@ export function ChatInterface() {
 
     const userMessage = input.trim()
     setInput("")
+
+    // Clear uploaded files after sending
+    // TODO: In future, send files with the message
+    clearFiles()
 
     // Add user message
     addMessage(chatId, {
@@ -341,7 +371,7 @@ export function ChatInterface() {
       </div>
 
       {/* Messages */}
-      <ChatContainerRoot className="flex-1" role="log" aria-live="polite" aria-atomic="false" aria-label="Chat messages">
+      <ChatContainerRoot className="relative flex-1" role="log" aria-live="polite" aria-atomic="false" aria-label="Chat messages">
         <ChatContainerContent className="space-y-6 py-6">
           {currentChat?.messages.map((message) => (
             <Message key={message.id} className="animate-slide-in-up">
@@ -356,45 +386,44 @@ export function ChatInterface() {
                   {message.content}
                 </MessageContent>
                 {/* Message Actions */}
-                <div className="flex items-center gap-1 opacity-0 transition-opacity group-hover:opacity-100" role="toolbar" aria-label="Message actions">
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-7 w-7"
-                    onClick={() => handleCopyMessage(message.content)}
-                    title="Copy message"
-                    aria-label="Copy message to clipboard"
-                  >
-                    <Copy className="h-3.5 w-3.5" />
-                  </Button>
-                  {message.role === "assistant" && (
+                <MessageActions>
+                  <MessageAction tooltip="Copy message">
                     <Button
                       variant="ghost"
                       size="icon"
                       className="h-7 w-7"
-                      onClick={() => handleRegenerateResponse(message.id)}
-                      disabled={regeneratingMessageId === message.id}
-                      title="Regenerate response"
-                      aria-label="Regenerate assistant response"
-                      aria-busy={regeneratingMessageId === message.id}
+                      onClick={() => handleCopyMessage(message.content)}
                     >
-                      <RotateCw className={cn(
-                        "h-3.5 w-3.5",
-                        regeneratingMessageId === message.id && "animate-spin"
-                      )} />
+                      <Copy className="h-3.5 w-3.5" />
                     </Button>
+                  </MessageAction>
+                  {message.role === "assistant" && (
+                    <MessageAction tooltip="Regenerate response">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-7 w-7"
+                        onClick={() => handleRegenerateResponse(message.id)}
+                        disabled={regeneratingMessageId === message.id}
+                      >
+                        <RotateCw className={cn(
+                          "h-3.5 w-3.5",
+                          regeneratingMessageId === message.id && "animate-spin"
+                        )} />
+                      </Button>
+                    </MessageAction>
                   )}
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-7 w-7 text-destructive hover:text-destructive"
-                    onClick={() => handleDeleteMessage(message.id)}
-                    title="Delete message"
-                    aria-label="Delete message"
-                  >
-                    <Trash2 className="h-3.5 w-3.5" />
-                  </Button>
-                </div>
+                  <MessageAction tooltip="Delete message">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-7 w-7 text-destructive hover:text-destructive"
+                      onClick={() => handleDeleteMessage(message.id)}
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </Button>
+                  </MessageAction>
+                </MessageActions>
               </div>
             </Message>
           ))}
@@ -404,54 +433,79 @@ export function ChatInterface() {
                 fallback="AI"
                 className="bg-primary text-primary-foreground"
               />
-              <div className="flex-1 space-y-2" role="status" aria-live="polite" aria-label="AI is thinking">
-                <div className="space-y-2">
-                  <Skeleton className="h-4 w-full" />
-                  <Skeleton className="h-4 w-11/12" />
-                  <Skeleton className="h-4 w-10/12" />
-                </div>
-                <span className="sr-only">AI is thinking...</span>
-              </div>
+              <MessageContent>
+                <Loader variant="typing" size="md" />
+              </MessageContent>
             </Message>
           )}
         </ChatContainerContent>
         <ChatContainerScrollAnchor />
+        <div className="absolute bottom-4 right-4">
+          <ScrollButton />
+        </div>
       </ChatContainerRoot>
 
       {/* Input */}
-      <div className="border-t p-4">
-        <PromptInput
-          value={input}
-          onValueChange={setInput}
-          isLoading={isLoading}
-          onSubmit={handleSubmit}
-        >
-          <PromptInputTextarea
-            ref={inputRef}
-            placeholder="Type a message..."
-            className="max-h-32"
-            aria-label="Chat message input"
-            aria-describedby="chat-title"
-          />
-          <PromptInputActions>
-            <PromptInputAction tooltip="Attach file">
-              <Button variant="ghost" size="icon" className="h-8 w-8" aria-label="Attach file" disabled>
-                <Paperclip className="h-4 w-4" />
-              </Button>
-            </PromptInputAction>
-            <div className="flex-1" />
-            <Button
-              type="submit"
-              size="icon"
-              className="h-8 w-8"
-              disabled={!input.trim() || isLoading}
-              aria-label="Send message"
+      <FileUpload onFilesAdded={handleFileSelect} multiple accept="image/*,text/*,.pdf,.doc,.docx">
+        <div className="border-t">
+          {/* Upload Artifacts Preview */}
+          <UploadArtifactPreview files={uploadedFiles} onRemove={removeFile} />
+
+          {/* Prompt Input */}
+          <div className="p-4">
+            <PromptInput
+              value={input}
+              onValueChange={setInput}
+              isLoading={isLoading}
+              onSubmit={handleSubmit}
             >
-              <Send className="h-4 w-4" />
-            </Button>
-          </PromptInputActions>
-        </PromptInput>
-      </div>
+              <PromptInputTextarea
+                ref={inputRef}
+                placeholder="Type a message..."
+                className="max-h-32"
+                aria-label="Chat message input"
+                aria-describedby="chat-title"
+              />
+              <PromptInputActions>
+                <PromptInputAction tooltip="Attach file">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8"
+                    aria-label="Attach file"
+                    onClick={handleAttachClick}
+                  >
+                    <Paperclip className="h-4 w-4" />
+                  </Button>
+                </PromptInputAction>
+                <div className="flex-1" />
+                <Button
+                  type="submit"
+                  size="icon"
+                  className="h-8 w-8"
+                  disabled={!input.trim() || isLoading}
+                  aria-label="Send message"
+                >
+                  <Send className="h-4 w-4" />
+                </Button>
+              </PromptInputActions>
+            </PromptInput>
+          </div>
+
+          {/* Hidden file input */}
+          <input
+            ref={fileInputRef}
+            type="file"
+            multiple
+            accept="image/*,text/*,.pdf,.doc,.docx"
+            className="hidden"
+            onChange={handleFileInputChange}
+          />
+        </div>
+
+        {/* Drag overlay */}
+        <FileUploadContent />
+      </FileUpload>
     </div>
   )
 }
