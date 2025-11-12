@@ -19,7 +19,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
-import { Send, Paperclip, Sparkles, Copy, RotateCw, Trash2 } from "lucide-react"
+import { Paperclip, Sparkles, Copy, RotateCw, Trash2, ArrowUp, Square } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Provider } from "@/types"
 import { detectArtifacts, hasArtifacts } from "@/lib/artifact-detector"
@@ -407,7 +407,7 @@ export function ChatInterface() {
       {/* Messages */}
       <div className="relative flex-1 min-h-0">
         <ChatContainerRoot className="h-full" role="log" aria-live="polite" aria-atomic="false" aria-label="Chat messages">
-          <ChatContainerContent className="space-y-6 pt-6 pb-24">
+          <ChatContainerContent className="space-y-6 pt-6 pb-32 min-h-full">
             {currentChat?.messages.map((message) => {
             // Get appropriate avatar based on role
             const avatarProps = message.role === "user"
@@ -423,7 +423,8 @@ export function ChatInterface() {
                 key={message.id}
                 className={cn(
                   "animate-slide-in-up",
-                  message.role === "user" && "flex-row-reverse justify-start ml-auto max-w-[85%]"
+                  message.role === "user" && "flex-row-reverse justify-start ml-auto max-w-[85%]",
+                  message.role === "assistant" && "max-w-[90%]"
                 )}
               >
                 <MessageAvatar
@@ -437,7 +438,9 @@ export function ChatInterface() {
                 <MessageContent
                   markdown
                   className={cn(
-                    message.role === "user" && "bg-primary text-primary-foreground rounded-2xl px-4 py-3"
+                    message.role === "user"
+                      ? "bg-gradient-to-br from-blue-500 to-blue-600 dark:from-blue-600 dark:to-blue-700 text-white rounded-2xl px-4 py-3 shadow-md -mr-2"
+                      : "bg-muted/40 rounded-2xl px-4 py-3 -ml-2 border border-border/30"
                   )}
                 >
                   {message.content}
@@ -501,73 +504,99 @@ export function ChatInterface() {
           )}
           </ChatContainerContent>
           <ChatContainerScrollAnchor />
-          <div className="pointer-events-none sticky bottom-4 z-10 flex justify-end px-4">
+
+          {/* Scroll button */}
+          <div className="pointer-events-none sticky bottom-28 z-30 flex justify-end px-4">
             <ScrollButton className="pointer-events-auto" />
           </div>
+
+          {/* Subtle fade gradient (ChatGPT style) */}
+          <div className="pointer-events-none absolute bottom-0 left-0 right-0 h-20 bg-gradient-to-t from-background to-transparent z-10" />
+
+          {/* Floating input container */}
+          <FileUpload onFilesAdded={handleFileSelect} multiple accept="image/*,text/*,.pdf,.doc,.docx">
+            <div className="sticky bottom-0 left-0 right-0 z-20 bg-background px-4 pb-4 pt-3">
+              {/* Upload Artifacts Preview */}
+              {uploadedFiles.length > 0 && (
+                <div className="pb-2">
+                  <UploadArtifactPreview files={uploadedFiles} onRemove={removeFile} />
+                </div>
+              )}
+
+              {/* Prompt Input */}
+              <PromptInput
+                value={input}
+                onValueChange={setInput}
+                isLoading={isLoading}
+                onSubmit={handleSubmit}
+                className="rounded-3xl border border-border/50 bg-muted/50 shadow-sm"
+              >
+                <PromptInputTextarea
+                  ref={inputRef}
+                  value={input}
+                  onChange={(e) => setInput(e.target.value)}
+                  placeholder="Type a message..."
+                  className="max-h-32"
+                  aria-label="Chat message input"
+                  aria-describedby="chat-title"
+                />
+                <PromptInputActions>
+                  <PromptInputAction tooltip="Attach file">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8"
+                      aria-label="Attach file"
+                      onClick={handleAttachClick}
+                    >
+                      <Paperclip className="h-4 w-4" />
+                    </Button>
+                  </PromptInputAction>
+                  <div className="flex-1" />
+                  <button
+                    type="submit"
+                    disabled={(!input.trim() && !isLoading) || false}
+                    aria-label={isLoading ? "Stop generating" : "Send message"}
+                    onClick={(e) => {
+                      if (isLoading) {
+                        e.preventDefault()
+                        // TODO: Add stop generation logic
+                      }
+                    }}
+                    className={cn(
+                      "rounded-full flex items-center justify-center",
+                      isLoading
+                        ? "h-8 w-8 bg-red-600 hover:bg-red-700 text-white shadow-md animate-radial-pulse cursor-pointer transition-all duration-200"
+                        : input.trim()
+                        ? "h-9 w-9 bg-blue-600 hover:bg-blue-700 text-white shadow-md cursor-pointer transition-all duration-500 ease-out"
+                        : "h-8 w-8 bg-muted/80 text-foreground/40 cursor-not-allowed transition-all duration-500 ease-out"
+                    )}
+                  >
+                    {isLoading ? (
+                      <Square className="h-3 w-3 fill-current" />
+                    ) : (
+                      <ArrowUp className="h-4 w-4" />
+                    )}
+                  </button>
+                </PromptInputActions>
+              </PromptInput>
+
+              {/* Hidden file input */}
+              <input
+                ref={fileInputRef}
+                type="file"
+                multiple
+                accept="image/*,text/*,.pdf,.doc,.docx"
+                className="hidden"
+                onChange={handleFileInputChange}
+              />
+            </div>
+
+            {/* Drag overlay */}
+            <FileUploadContent />
+          </FileUpload>
         </ChatContainerRoot>
       </div>
-
-      {/* Input */}
-      <FileUpload onFilesAdded={handleFileSelect} multiple accept="image/*,text/*,.pdf,.doc,.docx">
-        <div className="border-t">
-          {/* Upload Artifacts Preview */}
-          <UploadArtifactPreview files={uploadedFiles} onRemove={removeFile} />
-
-          {/* Prompt Input */}
-          <div className="p-4">
-            <PromptInput
-              value={input}
-              onValueChange={setInput}
-              isLoading={isLoading}
-              onSubmit={handleSubmit}
-            >
-              <PromptInputTextarea
-                ref={inputRef}
-                placeholder="Type a message..."
-                className="max-h-32"
-                aria-label="Chat message input"
-                aria-describedby="chat-title"
-              />
-              <PromptInputActions>
-                <PromptInputAction tooltip="Attach file">
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-8 w-8"
-                    aria-label="Attach file"
-                    onClick={handleAttachClick}
-                  >
-                    <Paperclip className="h-4 w-4" />
-                  </Button>
-                </PromptInputAction>
-                <div className="flex-1" />
-                <Button
-                  type="submit"
-                  size="icon"
-                  className="h-8 w-8"
-                  disabled={!input.trim() || isLoading}
-                  aria-label="Send message"
-                >
-                  <Send className="h-4 w-4" />
-                </Button>
-              </PromptInputActions>
-            </PromptInput>
-          </div>
-
-          {/* Hidden file input */}
-          <input
-            ref={fileInputRef}
-            type="file"
-            multiple
-            accept="image/*,text/*,.pdf,.doc,.docx"
-            className="hidden"
-            onChange={handleFileInputChange}
-          />
-        </div>
-
-        {/* Drag overlay */}
-        <FileUploadContent />
-      </FileUpload>
     </div>
   )
 }

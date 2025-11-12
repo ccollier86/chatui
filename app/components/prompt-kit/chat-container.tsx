@@ -15,7 +15,7 @@ export function ChatContainerRoot({ children, className, ...props }: ChatContain
   return (
     <div
       ref={scrollRef}
-      className={cn("h-full overflow-y-auto", className)}
+      className={cn("h-full overflow-y-auto relative", className)}
       data-scroll-container="true"
       {...props}
     >

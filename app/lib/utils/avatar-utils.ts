@@ -100,7 +100,7 @@ export function getUserAvatar(config: UserAvatarConfig): {
     case "initials":
       return {
         fallback: config.value || "U",
-        className: "bg-primary text-primary-foreground font-semibold",
+        className: "bg-background ring-2 ring-border text-blue-600 dark:text-white font-semibold",
       }
 
     case "gradient":
@@ -112,7 +112,7 @@ export function getUserAvatar(config: UserAvatarConfig): {
     default:
       return {
         fallback: "U",
-        className: "bg-primary text-primary-foreground font-semibold",
+        className: "bg-background ring-2 ring-border text-blue-600 dark:text-white font-semibold",
       }
   }
 }

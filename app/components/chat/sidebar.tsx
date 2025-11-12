@@ -6,7 +6,7 @@ import { Separator } from '@/components/ui/separator';
 import { useChatStore } from '@/lib/store';
 import { cn } from '@/lib/utils';
 import {
-	ChevronDown,
+	ChevronRight,
 	Code,
 	FileCode,
 	FolderOpen,
@@ -147,7 +147,7 @@ export function Sidebar({ className, onToggle, isMinimized }: SidebarProps) {
 							<span className="text-muted-foreground">Free plan</span>
 						</div>
 					</div>
-					<ChevronDown className="h-4 w-4" />
+					<ChevronRight className="h-4 w-4" />
 				</Button>
 			</div>
 		</div>
