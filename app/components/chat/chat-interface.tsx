@@ -18,6 +18,8 @@ import { Send, Paperclip, Sparkles, Copy, RotateCw, Trash2 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { AVAILABLE_MODELS, Provider } from "@/types"
 import { detectArtifacts, hasArtifacts } from "@/lib/artifact-detector"
+import { Skeleton } from "@/components/ui/skeleton"
+import { parseAPIError, retryWithBackoff } from "@/lib/error-handler"
 
 export function ChatInterface() {
   const {
@@ -160,15 +162,28 @@ export function ChatInterface() {
       }
     } catch (error) {
       console.error("Error:", error)
-      toast.error("Failed to get response", {
-        description: error instanceof Error ? error.message : "Please try again",
+      const apiError = parseAPIError(error)
+
+      toast.error(apiError.message, {
+        description: apiError.suggestedAction,
+        action: apiError.retryable ? {
+          label: "Retry",
+          onClick: () => {
+            setInput(userMessage)
+            setTimeout(() => handleSubmit(), 100)
+          },
+        } : undefined,
       })
-      addMessage(chatId, {
-        role: "assistant",
-        content: "Sorry, I encountered an error. Please try again.",
-        model: currentChat?.model,
-        provider: currentChat?.provider,
-      })
+
+      // Only add error message to chat if it's not retryable
+      if (!apiError.retryable) {
+        addMessage(chatId, {
+          role: "assistant",
+          content: `Error: ${apiError.message}. ${apiError.suggestedAction}`,
+          model: currentChat?.model,
+          provider: currentChat?.provider,
+        })
+      }
     } finally {
       setIsLoading(false)
     }
@@ -297,8 +312,14 @@ export function ChatInterface() {
       toast.success("Response regenerated")
     } catch (error) {
       console.error("Error:", error)
-      toast.error("Failed to regenerate", {
-        description: error instanceof Error ? error.message : "Please try again",
+      const apiError = parseAPIError(error)
+
+      toast.error(apiError.message, {
+        description: apiError.suggestedAction,
+        action: apiError.retryable ? {
+          label: "Retry",
+          onClick: () => handleRegenerateResponse(messageId),
+        } : undefined,
       })
     } finally {
       setRegeneratingMessageId(null)
@@ -323,7 +344,7 @@ export function ChatInterface() {
       <ChatContainerRoot className="flex-1" role="log" aria-live="polite" aria-atomic="false" aria-label="Chat messages">
         <ChatContainerContent className="space-y-6 py-6">
           {currentChat?.messages.map((message) => (
-            <Message key={message.id}>
+            <Message key={message.id} className="animate-slide-in-up">
               <MessageAvatar
                 fallback={message.role === "user" ? "U" : "AI"}
                 className={cn(
@@ -378,19 +399,19 @@ export function ChatInterface() {
             </Message>
           ))}
           {isLoading && (
-            <Message>
+            <Message className="animate-slide-in-up">
               <MessageAvatar
                 fallback="AI"
                 className="bg-primary text-primary-foreground"
               />
-              <MessageContent>
-                <div className="flex items-center gap-2" role="status" aria-live="polite" aria-label="AI is typing">
-                  <div className="h-2 w-2 animate-bounce rounded-full bg-primary" style={{ animationDelay: "0ms" }} />
-                  <div className="h-2 w-2 animate-bounce rounded-full bg-primary" style={{ animationDelay: "150ms" }} />
-                  <div className="h-2 w-2 animate-bounce rounded-full bg-primary" style={{ animationDelay: "300ms" }} />
-                  <span className="sr-only">AI is typing a response</span>
+              <div className="flex-1 space-y-2" role="status" aria-live="polite" aria-label="AI is thinking">
+                <div className="space-y-2">
+                  <Skeleton className="h-4 w-full" />
+                  <Skeleton className="h-4 w-11/12" />
+                  <Skeleton className="h-4 w-10/12" />
                 </div>
-              </MessageContent>
+                <span className="sr-only">AI is thinking...</span>
+              </div>
             </Message>
           )}
         </ChatContainerContent>
