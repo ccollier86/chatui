@@ -1,14 +1,14 @@
-"use client"
+"use client";
 
-import * as React from "react"
-import { cn } from "@/lib/utils"
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { Markdown } from "./markdown"
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
+import type * as React from "react";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { cn } from "@/lib/utils";
+import { Markdown } from "./markdown";
 
 interface MessageProps extends React.HTMLProps<HTMLDivElement> {
-  children: React.ReactNode
-  className?: string
+  children: React.ReactNode;
+  className?: string;
 }
 
 export function Message({ children, className, ...props }: MessageProps) {
@@ -16,15 +16,15 @@ export function Message({ children, className, ...props }: MessageProps) {
     <div className={cn("group flex gap-3", className)} {...props}>
       {children}
     </div>
-  )
+  );
 }
 
 interface MessageAvatarProps {
-  src?: string
-  alt?: string
-  fallback?: string
-  delayMs?: number
-  className?: string
+  src?: string;
+  alt?: string;
+  fallback?: string;
+  delayMs?: number;
+  className?: string;
 }
 
 export function MessageAvatar({
@@ -39,13 +39,13 @@ export function MessageAvatar({
       <AvatarImage src={src} alt={alt} />
       <AvatarFallback delayMs={delayMs}>{fallback}</AvatarFallback>
     </Avatar>
-  )
+  );
 }
 
 interface MessageContentProps extends React.HTMLProps<HTMLDivElement> {
-  children: React.ReactNode
-  markdown?: boolean
-  className?: string
+  children: React.ReactNode;
+  markdown?: boolean;
+  className?: string;
 }
 
 export function MessageContent({
@@ -55,19 +55,15 @@ export function MessageContent({
   ...props
 }: MessageContentProps) {
   return (
-    <div className={cn("flex-1 space-y-2", className)} {...props}>
-      {markdown && typeof children === "string" ? (
-        <Markdown>{children}</Markdown>
-      ) : (
-        children
-      )}
+    <div className={cn("flex-1 space-y-2 min-w-0 break-words", className)} {...props}>
+      {markdown && typeof children === "string" ? <Markdown>{children}</Markdown> : children}
     </div>
-  )
+  );
 }
 
 interface MessageActionsProps extends React.HTMLProps<HTMLDivElement> {
-  children: React.ReactNode
-  className?: string
+  children: React.ReactNode;
+  className?: string;
 }
 
 export function MessageActions({ children, className, ...props }: MessageActionsProps) {
@@ -81,14 +77,14 @@ export function MessageActions({ children, className, ...props }: MessageActions
     >
       {children}
     </div>
-  )
+  );
 }
 
 interface MessageActionProps extends React.ComponentProps<typeof Tooltip> {
-  tooltip?: React.ReactNode
-  children: React.ReactNode
-  className?: string
-  side?: "top" | "bottom" | "left" | "right"
+  tooltip?: React.ReactNode;
+  children: React.ReactNode;
+  className?: string;
+  side?: "top" | "bottom" | "left" | "right";
 }
 
 export function MessageAction({
@@ -99,7 +95,7 @@ export function MessageAction({
   ...props
 }: MessageActionProps) {
   if (!tooltip) {
-    return <div className={className}>{children}</div>
+    return <div className={className}>{children}</div>;
   }
 
   return (
@@ -111,5 +107,5 @@ export function MessageAction({
         <TooltipContent side={side}>{tooltip}</TooltipContent>
       </Tooltip>
     </TooltipProvider>
-  )
+  );
 }

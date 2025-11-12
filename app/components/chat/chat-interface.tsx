@@ -54,6 +54,21 @@ export function ChatInterface() {
     fetchModels()
   }, [fetchModels])
 
+  // Ensure conversations open scrolled to the most recent message
+  React.useEffect(() => {
+    if (!currentChatId) return
+
+    const frame = requestAnimationFrame(() => {
+      const scrollContainer = document.querySelector<HTMLElement>('[data-scroll-container="true"]')
+      scrollContainer?.scrollTo({
+        top: scrollContainer.scrollHeight,
+        behavior: "smooth",
+      })
+    })
+
+    return () => cancelAnimationFrame(frame)
+  }, [currentChatId])
+
   // Listen for focus input event
   React.useEffect(() => {
     const handleFocusInput = () => {
@@ -390,33 +405,47 @@ export function ChatInterface() {
       </div>
 
       {/* Messages */}
-      <ChatContainerRoot className="relative flex-1" role="log" aria-live="polite" aria-atomic="false" aria-label="Chat messages">
-        <ChatContainerContent className="space-y-6 py-6">
-          {currentChat?.messages.map((message) => {
+      <div className="relative flex-1 min-h-0">
+        <ChatContainerRoot className="h-full" role="log" aria-live="polite" aria-atomic="false" aria-label="Chat messages">
+          <ChatContainerContent className="space-y-6 pt-6 pb-24">
+            {currentChat?.messages.map((message) => {
             // Get appropriate avatar based on role
             const avatarProps = message.role === "user"
               ? getUserAvatar(settings.userAvatar)
               : {
                   src: getProviderAvatar(message.provider || currentChat.provider, message.model || currentChat.model),
                   fallback: getProviderFallback(message.provider || currentChat.provider, message.model || currentChat.model),
-                  className: "bg-primary text-primary-foreground",
+                  className: "bg-background ring-2 ring-border text-foreground [&_img]:dark:brightness-0 [&_img]:dark:invert",
                 }
 
             return (
-              <Message key={message.id} className="animate-slide-in-up">
+              <Message
+                key={message.id}
+                className={cn(
+                  "animate-slide-in-up",
+                  message.role === "user" && "flex-row-reverse justify-start ml-auto max-w-[85%]"
+                )}
+              >
                 <MessageAvatar
                   {...avatarProps}
-                  className={cn(
-                    avatarProps.className,
-                    message.role === "user" && "text-primary-foreground"
-                  )}
+                  className={cn(avatarProps.className)}
                 />
-              <div className="flex-1 space-y-2">
-                <MessageContent markdown>
+              <div className={cn(
+                "flex-1 space-y-2",
+                message.role === "user" && "flex-none"
+              )}>
+                <MessageContent
+                  markdown
+                  className={cn(
+                    message.role === "user" && "bg-primary text-primary-foreground rounded-2xl px-4 py-3"
+                  )}
+                >
                   {message.content}
                 </MessageContent>
                 {/* Message Actions */}
-                <MessageActions>
+                <MessageActions className={cn(
+                  message.role === "user" && "flex-row-reverse"
+                )}>
                   <MessageAction tooltip="Copy message">
                     <Button
                       variant="ghost"
@@ -463,19 +492,20 @@ export function ChatInterface() {
               <MessageAvatar
                 src={getProviderAvatar(currentChat?.provider || "anthropic", currentChat?.model)}
                 fallback={getProviderFallback(currentChat?.provider || "anthropic", currentChat?.model)}
-                className="bg-primary text-primary-foreground"
+                className="bg-background ring-2 ring-border text-foreground [&_img]:dark:brightness-0 [&_img]:dark:invert"
               />
               <MessageContent>
                 <Loader variant="typing" size="md" />
               </MessageContent>
             </Message>
           )}
-        </ChatContainerContent>
-        <ChatContainerScrollAnchor />
-        <div className="absolute bottom-4 right-4">
-          <ScrollButton />
-        </div>
-      </ChatContainerRoot>
+          </ChatContainerContent>
+          <ChatContainerScrollAnchor />
+          <div className="pointer-events-none sticky bottom-4 z-10 flex justify-end px-4">
+            <ScrollButton className="pointer-events-auto" />
+          </div>
+        </ChatContainerRoot>
+      </div>
 
       {/* Input */}
       <FileUpload onFilesAdded={handleFileSelect} multiple accept="image/*,text/*,.pdf,.doc,.docx">

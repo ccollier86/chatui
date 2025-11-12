@@ -44,12 +44,6 @@ export function PromptInput({
         )}
       >
         <div className="flex-1 flex flex-col gap-2">
-          <PromptInputTextarea
-            value={value}
-            onChange={(e) => onValueChange(e.target.value)}
-            maxHeight={maxHeight}
-            disabled={isLoading}
-          />
           {children}
         </div>
       </form>

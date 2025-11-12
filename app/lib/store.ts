@@ -270,7 +270,11 @@ export const useChatStore = create<ChatState>()(
       },
 
       getChatsByRecency: () => {
-        return get().chats.sort((a, b) => b.updatedAt.getTime() - a.updatedAt.getTime())
+        return get().chats.sort((a, b) => {
+          const aTime = a.updatedAt instanceof Date ? a.updatedAt.getTime() : new Date(a.updatedAt).getTime()
+          const bTime = b.updatedAt instanceof Date ? b.updatedAt.getTime() : new Date(b.updatedAt).getTime()
+          return bTime - aTime
+        })
       },
     }),
     {

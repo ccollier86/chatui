@@ -100,6 +100,7 @@ export function getUserAvatar(config: UserAvatarConfig): {
     case "initials":
       return {
         fallback: config.value || "U",
+        className: "bg-primary text-primary-foreground font-semibold",
       }
 
     case "gradient":
@@ -111,6 +112,7 @@ export function getUserAvatar(config: UserAvatarConfig): {
     default:
       return {
         fallback: "U",
+        className: "bg-primary text-primary-foreground font-semibold",
       }
   }
 }
@@ -120,25 +122,25 @@ export function getUserAvatar(config: UserAvatarConfig): {
  */
 function getGradientClass(gradientName: string): string {
   const gradients: Record<string, string> = {
-    ocean: "bg-gradient-to-br from-blue-400 to-cyan-600",
-    sunset: "bg-gradient-to-br from-orange-400 to-pink-600",
-    forest: "bg-gradient-to-br from-green-400 to-emerald-600",
-    purple: "bg-gradient-to-br from-purple-400 to-indigo-600",
-    fire: "bg-gradient-to-br from-red-400 to-orange-600",
-    midnight: "bg-gradient-to-br from-slate-600 to-blue-900",
+    ocean: "bg-gradient-to-br from-blue-400 to-cyan-600 text-white font-semibold",
+    sunset: "bg-gradient-to-br from-orange-400 to-pink-600 text-white font-semibold",
+    forest: "bg-gradient-to-br from-green-400 to-emerald-600 text-white font-semibold",
+    purple: "bg-gradient-to-br from-purple-400 to-indigo-600 text-white font-semibold",
+    fire: "bg-gradient-to-br from-red-400 to-orange-600 text-white font-semibold",
+    midnight: "bg-gradient-to-br from-slate-600 to-blue-900 text-white font-semibold",
   }
 
-  return gradients[gradientName] || "bg-gradient-to-br from-gray-400 to-gray-600"
+  return gradients[gradientName] || "bg-gradient-to-br from-gray-400 to-gray-600 text-white font-semibold"
 }
 
 /**
  * Available gradient presets for user selection
  */
 export const AVATAR_GRADIENTS = [
-  { name: "ocean", label: "Ocean", className: "bg-gradient-to-br from-blue-400 to-cyan-600" },
-  { name: "sunset", label: "Sunset", className: "bg-gradient-to-br from-orange-400 to-pink-600" },
-  { name: "forest", label: "Forest", className: "bg-gradient-to-br from-green-400 to-emerald-600" },
-  { name: "purple", label: "Purple", className: "bg-gradient-to-br from-purple-400 to-indigo-600" },
-  { name: "fire", label: "Fire", className: "bg-gradient-to-br from-red-400 to-orange-600" },
-  { name: "midnight", label: "Midnight", className: "bg-gradient-to-br from-slate-600 to-blue-900" },
+  { name: "ocean", label: "Ocean", className: "bg-gradient-to-br from-blue-400 to-cyan-600 text-white font-semibold" },
+  { name: "sunset", label: "Sunset", className: "bg-gradient-to-br from-orange-400 to-pink-600 text-white font-semibold" },
+  { name: "forest", label: "Forest", className: "bg-gradient-to-br from-green-400 to-emerald-600 text-white font-semibold" },
+  { name: "purple", label: "Purple", className: "bg-gradient-to-br from-purple-400 to-indigo-600 text-white font-semibold" },
+  { name: "fire", label: "Fire", className: "bg-gradient-to-br from-red-400 to-orange-600 text-white font-semibold" },
+  { name: "midnight", label: "Midnight", className: "bg-gradient-to-br from-slate-600 to-blue-900 text-white font-semibold" },
 ]
