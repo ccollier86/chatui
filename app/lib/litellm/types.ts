@@ -236,3 +236,40 @@ export interface HTTPResponse<T = any> {
   status: number
   headers: Headers
 }
+
+// ============================================================================
+// Chat Types
+// ============================================================================
+
+export type ChatRole = 'system' | 'user' | 'assistant'
+
+export interface ChatMessage {
+  role: ChatRole
+  content: string
+}
+
+export interface ChatOptions {
+  messages: ChatMessage[]
+  model?: string // Optional, defaults to first available chat model
+  tags?: string[] // Routing tags
+  temperature?: number
+  maxTokens?: number
+  topP?: number
+  frequencyPenalty?: number
+  presencePenalty?: number
+  stop?: string | string[]
+  seed?: number
+}
+
+export interface ChatUsage {
+  promptTokens: number
+  completionTokens: number
+  totalTokens: number
+}
+
+export interface ChatResponse {
+  content: string
+  usage: ChatUsage
+  finishReason: string
+  model: string
+}

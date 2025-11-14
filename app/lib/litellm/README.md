@@ -241,13 +241,72 @@ litellm/
 
 Internally organized for maintainability, externally exposed as a simple API.
 
+## Chat Completions
+
+The client supports chat completions using Vercel AI SDK with LiteLLM as the provider.
+
+### Non-Streaming Chat
+
+```typescript
+const keyInfo = await client.requestKey({ user_id: '123' })
+const userClient = client.withKey(keyInfo.key)
+
+const response = await userClient.chat({
+  messages: [
+    { role: 'system', content: 'You are a helpful assistant' },
+    { role: 'user', content: 'What is TypeScript?' }
+  ],
+  tags: ['quality'], // Optional: routing tags
+  temperature: 0.7,
+  maxTokens: 500
+})
+
+console.log(response.content)
+console.log(response.usage) // { promptTokens, completionTokens, totalTokens }
+```
+
+### Streaming Chat
+
+```typescript
+const stream = await userClient.chatStream({
+  messages: [
+    { role: 'user', content: 'Write me a story' }
+  ],
+  tags: ['budget'], // Route to cheaper model
+  temperature: 0.9
+})
+
+// In Next.js API route:
+return stream.toTextStreamResponse()
+
+// Or stream manually:
+for await (const chunk of stream.textStream) {
+  console.log(chunk)
+}
+```
+
+### Chat Options
+
+All Vercel AI SDK parameters are supported:
+
+- `messages` (required): Array of chat messages
+- `model` (optional): Specific model ID (defaults to first available)
+- `tags` (optional): Routing tags for LiteLLM
+- `temperature`: Sampling temperature (0-2)
+- `maxTokens`: Maximum tokens to generate
+- `topP`: Nucleus sampling threshold
+- `frequencyPenalty`: Frequency penalty
+- `presencePenalty`: Presence penalty
+- `stop`: Stop sequences
+- `seed`: Deterministic output seed
+
 ## Next Steps
 
-This is just the virtual keys feature. Future additions:
-- Chat completions (Vercel AI SDK compatible)
+Future additions:
 - Image generation
 - Audio transcription/generation
 - Embeddings
+- Function calling
 - And more...
 
 Each feature will be added as a separate module but exposed through the same simple client API.

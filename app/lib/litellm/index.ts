@@ -32,7 +32,7 @@
  */
 
 // Main client
-export { LiteLLMClient } from './client'
+export { LiteLLMClient, UserLiteLLMClient } from './client'
 
 // Cache implementations
 export { MemoryCache, NoCache } from './cache'
@@ -49,4 +49,9 @@ export type {
   RateLimitInfo,
   LiteLLMError,
   ModelMode,
+  ChatMessage,
+  ChatOptions,
+  ChatResponse,
+  ChatUsage,
+  ChatRole,
 } from './types'
