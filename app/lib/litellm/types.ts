@@ -280,6 +280,9 @@ export interface ChatOptions {
   presencePenalty?: number
   stop?: string | string[]
   seed?: number
+  tools?: Record<string, any> // AI SDK tool definitions
+  toolChoice?: 'auto' | 'required' | { type: 'tool'; toolName: string }
+  maxSteps?: number // For multi-step tool calling
 }
 
 export interface ChatUsage {
@@ -293,6 +296,18 @@ export interface ChatResponse {
   usage: ChatUsage
   finishReason: string
   model: string
+  toolCalls?: Array<{
+    toolCallId: string
+    toolName: string
+    args: any
+  }>
+  toolResults?: Array<{
+    toolCallId: string
+    toolName: string
+    args: any
+    result: any
+  }>
+  responseMessages?: any[] // Full message array for multi-step conversations
 }
 
 // ============================================================================

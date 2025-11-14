@@ -49,7 +49,8 @@ export class ChatService {
    * ```
    */
   async chat(options: ChatOptions): Promise<ChatResponse> {
-    const { messages, model, tags, ...params } = options
+    const { messages, model, tags, tools, toolChoice, maxSteps, ...params } =
+      options
 
     // Determine which model to use
     const modelId = model || 'gpt-3.5-turbo' // Default fallback
@@ -81,6 +82,9 @@ export class ChatService {
       presencePenalty: params.presencePenalty,
       stop: params.stop,
       seed: params.seed,
+      tools,
+      toolChoice,
+      maxSteps,
       headers,
     })
 
@@ -94,6 +98,9 @@ export class ChatService {
       },
       finishReason: result.finishReason,
       model: modelId,
+      toolCalls: result.toolCalls,
+      toolResults: result.toolResults,
+      responseMessages: result.responseMessages,
     }
   }
 
@@ -114,7 +121,8 @@ export class ChatService {
    * ```
    */
   async chatStream(options: ChatOptions) {
-    const { messages, model, tags, ...params } = options
+    const { messages, model, tags, tools, toolChoice, maxSteps, ...params } =
+      options
 
     // Determine which model to use
     const modelId = model || 'gpt-3.5-turbo' // Default fallback
@@ -146,6 +154,9 @@ export class ChatService {
       presencePenalty: params.presencePenalty,
       stop: params.stop,
       seed: params.seed,
+      tools,
+      toolChoice,
+      maxSteps,
       headers,
     })
 

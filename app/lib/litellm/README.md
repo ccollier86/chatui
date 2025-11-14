@@ -497,11 +497,186 @@ await userClient.generateImages({
 })
 ```
 
+## Function Calling / Tools
+
+Enable AI models to call functions and use tools for structured outputs and agentic behavior.
+
+### Basic Tool Usage
+
+```typescript
+import { tool } from 'ai'
+import { z } from 'zod'
+
+const response = await userClient.chat({
+  messages: [
+    { role: 'user', content: 'What is the weather in San Francisco?' }
+  ],
+  tools: {
+    getWeather: tool({
+      description: 'Get the current weather for a location',
+      inputSchema: z.object({
+        location: z.string().describe('The city and state, e.g. San Francisco, CA'),
+      }),
+      execute: async ({ location }) => {
+        // Call your weather API
+        const weather = await fetchWeather(location)
+        return weather
+      },
+    }),
+  },
+})
+
+console.log(response.content) // "The weather in San Francisco is 65°F and sunny"
+console.log(response.toolCalls) // Array of tool calls made
+console.log(response.toolResults) // Results from executed tools
+```
+
+### Multiple Tools
+
+```typescript
+import { tool } from 'ai'
+import { z } from 'zod'
+
+const response = await userClient.chat({
+  messages: [
+    { role: 'user', content: 'Get the weather in NYC and search for nearby restaurants' }
+  ],
+  tools: {
+    getWeather: tool({
+      description: 'Get weather for a location',
+      inputSchema: z.object({
+        location: z.string(),
+      }),
+      execute: async ({ location }) => fetchWeather(location),
+    }),
+    searchRestaurants: tool({
+      description: 'Search for restaurants near a location',
+      inputSchema: z.object({
+        location: z.string(),
+        cuisine: z.string().optional(),
+      }),
+      execute: async ({ location, cuisine }) => {
+        return searchNearby(location, cuisine)
+      },
+    }),
+  },
+  maxSteps: 5, // Allow multi-step tool calling
+})
+```
+
+### Tool Choice Control
+
+```typescript
+// Let model decide when to use tools
+const response = await userClient.chat({
+  messages: [{ role: 'user', content: 'Should I bring an umbrella?' }],
+  tools: { getWeather: weatherTool },
+  toolChoice: 'auto', // default
+})
+
+// Force model to use a tool
+const response = await userClient.chat({
+  messages: [{ role: 'user', content: 'Get the weather' }],
+  tools: { getWeather: weatherTool },
+  toolChoice: 'required', // Must call a tool
+})
+
+// Force specific tool
+const response = await userClient.chat({
+  messages: [{ role: 'user', content: 'Check conditions' }],
+  tools: { getWeather: weatherTool },
+  toolChoice: {
+    type: 'tool',
+    toolName: 'getWeather',
+  },
+})
+```
+
+### Multi-Step Agents
+
+Enable the model to use tools multiple times in a loop:
+
+```typescript
+const response = await userClient.chat({
+  messages: [
+    {
+      role: 'user',
+      content: 'Find a restaurant in Seattle with good reviews and tell me the weather there',
+    },
+  ],
+  tools: {
+    searchRestaurants: restaurantTool,
+    getWeather: weatherTool,
+    getReviews: reviewsTool,
+  },
+  maxSteps: 10, // Allow up to 10 tool calls
+})
+
+// The model will:
+// 1. Call searchRestaurants for Seattle
+// 2. Call getReviews for top results
+// 3. Call getWeather for Seattle
+// 4. Synthesize a final answer
+
+console.log(response.toolCalls) // All tool calls made
+console.log(response.toolResults) // All results
+console.log(response.content) // Final synthesized answer
+```
+
+### Streaming with Tools
+
+Tools work with streaming too:
+
+```typescript
+const stream = await userClient.chatStream({
+  messages: [{ role: 'user', content: 'What is the weather?' }],
+  tools: { getWeather: weatherTool },
+  maxSteps: 5,
+})
+
+// Stream text and tool calls
+for await (const chunk of stream.textStream) {
+  console.log(chunk)
+}
+
+// Or use in API route
+return stream.toTextStreamResponse()
+```
+
+### Structured Output without Execution
+
+Define tools without execute functions for structured output:
+
+```typescript
+const response = await userClient.chat({
+  messages: [
+    { role: 'user', content: 'Extract user info: John Doe, age 30, lives in NYC' },
+  ],
+  tools: {
+    extractUser: tool({
+      description: 'Extract structured user information',
+      inputSchema: z.object({
+        name: z.string(),
+        age: z.number(),
+        location: z.string(),
+      }),
+      // No execute - just get structured data
+    }),
+  },
+  toolChoice: {
+    type: 'tool',
+    toolName: 'extractUser',
+  },
+})
+
+const userData = response.toolCalls[0].args
+console.log(userData) // { name: 'John Doe', age: 30, location: 'NYC' }
+```
+
 ## Next Steps
 
 Future additions:
 - Audio transcription/generation
-- Function calling
 - RAG capabilities (embeddings, vector search, reranking)
 - And more...
 
