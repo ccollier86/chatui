@@ -10,11 +10,18 @@ import type {
   VirtualKeyInfo,
   ChatOptions,
   ChatResponse,
+  EmbeddingOptions,
+  EmbeddingResponse,
+  VectorSearchOptions,
+  VectorSearchResponse,
+  RerankOptions,
+  RerankResponse,
 } from './types'
 import { HTTPClient } from './http-client'
 import { MemoryCache } from './cache'
 import { KeysManager } from './keys'
 import { ChatService } from './chat'
+import { RAGService } from './rag'
 
 export class LiteLLMClient {
   private config: LiteLLMConfig
@@ -112,11 +119,24 @@ export class LiteLLMClient {
  * All requests automatically use the user's virtual key and permissions
  */
 export class UserLiteLLMClient {
+  private config: LiteLLMConfig
+  private http: HTTPClient
   private chatService: ChatService
+  private ragService: RAGService
 
   constructor(config: LiteLLMConfig, userKey: string) {
-    // Initialize chat service with user's key
+    this.config = config
+
+    // Initialize HTTP client with master key
+    this.http = new HTTPClient(
+      config.baseURL,
+      config.masterKey,
+      config.defaultTimeout
+    )
+
+    // Initialize services with user's key
     this.chatService = new ChatService(config, userKey)
+    this.ragService = new RAGService(this.http, config, userKey)
   }
 
   /**
@@ -166,5 +186,71 @@ export class UserLiteLLMClient {
    */
   async chatStream(options: ChatOptions) {
     return this.chatService.chatStream(options)
+  }
+
+  /**
+   * Generate embeddings from text
+   *
+   * @example
+   * ```typescript
+   * const response = await userClient.embed({
+   *   input: ['Hello world', 'How are you?'],
+   *   model: 'text-embedding-ada-002'
+   * })
+   *
+   * console.log(response.embeddings.length) // 2
+   * console.log(response.embeddings[0].length) // 1536 dimensions
+   * ```
+   */
+  async embed(options: EmbeddingOptions): Promise<EmbeddingResponse> {
+    return this.ragService.embed(options)
+  }
+
+  /**
+   * Search a vector store for relevant content
+   *
+   * @example
+   * ```typescript
+   * const response = await userClient.search({
+   *   vectorStoreId: 'vs_abc123',
+   *   query: 'What is machine learning?',
+   *   maxResults: 5,
+   *   scoreThreshold: 0.7
+   * })
+   *
+   * for (const result of response.results) {
+   *   console.log(`Score: ${result.score}`)
+   *   console.log(`Content: ${result.content}`)
+   * }
+   * ```
+   */
+  async search(
+    options: VectorSearchOptions
+  ): Promise<VectorSearchResponse> {
+    return this.ragService.search(options)
+  }
+
+  /**
+   * Rerank documents by relevance to query
+   *
+   * @example
+   * ```typescript
+   * const response = await userClient.rerank({
+   *   query: 'machine learning basics',
+   *   documents: [
+   *     'Machine learning is a subset of AI...',
+   *     'Cooking is the art of preparing food...',
+   *     'Neural networks are computing systems...'
+   *   ],
+   *   topN: 2
+   * })
+   *
+   * // Returns top 2 most relevant documents
+   * console.log(response.results[0].relevanceScore) // 0.95
+   * console.log(response.results[0].index) // 0
+   * ```
+   */
+  async rerank(options: RerankOptions): Promise<RerankResponse> {
+    return this.ragService.rerank(options)
   }
 }

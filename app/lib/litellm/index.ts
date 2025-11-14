@@ -71,4 +71,12 @@ export type {
   TextContentPart,
   ImageContentPart,
   FileContentPart,
+  EmbeddingOptions,
+  EmbeddingResponse,
+  VectorSearchOptions,
+  VectorSearchResponse,
+  VectorSearchResult,
+  RerankOptions,
+  RerankResponse,
+  RerankResult,
 } from './types'
