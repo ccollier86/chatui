@@ -10,11 +10,14 @@ import type {
   VirtualKeyInfo,
   ChatOptions,
   ChatResponse,
+  ImageGenerationOptions,
+  ImageGenerationResponse,
 } from './types'
 import { HTTPClient } from './http-client'
 import { MemoryCache } from './cache'
 import { KeysManager } from './keys'
 import { ChatService } from './chat'
+import { ImageService } from './image'
 
 export class LiteLLMClient {
   private config: LiteLLMConfig
@@ -115,6 +118,7 @@ export class UserLiteLLMClient {
   private config: LiteLLMConfig
   private http: HTTPClient
   private chatService: ChatService
+  private imageService: ImageService
 
   constructor(config: LiteLLMConfig, userKey: string) {
     this.config = config
@@ -128,6 +132,7 @@ export class UserLiteLLMClient {
 
     // Initialize services with user's key
     this.chatService = new ChatService(config, userKey)
+    this.imageService = new ImageService(config, userKey)
   }
 
   /**
@@ -177,5 +182,31 @@ export class UserLiteLLMClient {
    */
   async chatStream(options: ChatOptions) {
     return this.chatService.chatStream(options)
+  }
+
+  /**
+   * Generate images from text prompt
+   *
+   * @example
+   * ```typescript
+   * const response = await userClient.generateImages({
+   *   prompt: 'A futuristic cityscape at sunset',
+   *   model: 'dall-e-3',
+   *   n: 2,
+   *   size: '1024x1024',
+   *   tags: ['quality']
+   * })
+   *
+   * // Use the base64 data
+   * console.log(response.images[0].base64)
+   *
+   * // Or use uint8Array for file operations
+   * const imageBuffer = Buffer.from(response.images[0].uint8Array)
+   * ```
+   */
+  async generateImages(
+    options: ImageGenerationOptions
+  ): Promise<ImageGenerationResponse> {
+    return this.imageService.generateImages(options)
   }
 }

@@ -294,3 +294,29 @@ export interface ChatResponse {
   finishReason: string
   model: string
 }
+
+// ============================================================================
+// Image Generation Types
+// ============================================================================
+
+export interface ImageGenerationOptions {
+  prompt: string
+  model?: string // Optional model ID (e.g., 'dall-e-3', 'dall-e-2')
+  n?: number // Number of images to generate
+  size?: string // Image dimensions like '1024x1024', '1792x1024'
+  aspectRatio?: string // Aspect ratio like '16:9', '1:1'
+  seed?: number // For reproducible generation
+  tags?: string[] // Routing tags for LiteLLM
+}
+
+export interface GeneratedImage {
+  base64: string
+  uint8Array: Uint8Array
+  mediaType: string
+}
+
+export interface ImageGenerationResponse {
+  image: GeneratedImage // First generated image
+  images: GeneratedImage[] // All generated images
+  model: string
+}

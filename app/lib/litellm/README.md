@@ -412,10 +412,94 @@ const mimeType2 = getMimeType('document.pdf') // 'application/pdf'
 const base64 = bufferToBase64(fileBuffer)
 ```
 
+## Image Generation
+
+Generate images from text prompts using models like DALL-E, Stable Diffusion, and more via LiteLLM.
+
+### Basic Usage
+
+```typescript
+const response = await userClient.generateImages({
+  prompt: 'A futuristic cityscape at sunset with flying cars',
+  model: 'dall-e-3',
+  n: 1,
+  size: '1024x1024'
+})
+
+// Access the generated image
+const imageBase64 = response.image.base64
+const imageUrl = `data:${response.image.mediaType};base64,${imageBase64}`
+
+// Or work with multiple images
+for (const img of response.images) {
+  console.log(`Generated ${img.mediaType} image`)
+  // img.base64 - base64 string
+  // img.uint8Array - Uint8Array for file operations
+}
+```
+
+### Options
+
+```typescript
+const response = await userClient.generateImages({
+  prompt: 'An abstract painting in the style of Kandinsky',
+  model: 'dall-e-3',         // Model ID (defaults to 'dall-e-3')
+  n: 2,                      // Number of images to generate
+  size: '1792x1024',         // Image dimensions
+  aspectRatio: '16:9',       // Alternative to size
+  seed: 42,                  // For reproducible generation
+  tags: ['quality']          // Routing tags for LiteLLM
+})
+```
+
+### Supported Sizes
+
+Common sizes depend on the model:
+- DALL-E 3: `1024x1024`, `1792x1024`, `1024x1792`
+- DALL-E 2: `256x256`, `512x512`, `1024x1024`
+- Stable Diffusion: Varies by provider
+
+### Saving Images
+
+```typescript
+import fs from 'fs'
+
+const response = await userClient.generateImages({
+  prompt: 'A serene mountain landscape',
+  model: 'dall-e-3'
+})
+
+// Save as file (Node.js)
+fs.writeFileSync(
+  'generated-image.png',
+  Buffer.from(response.image.uint8Array)
+)
+
+// Or use base64 in HTML
+const imgTag = `<img src="data:${response.image.mediaType};base64,${response.image.base64}" />`
+```
+
+### Using with Different Models
+
+LiteLLM routes to different providers based on model name:
+
+```typescript
+// OpenAI DALL-E
+await userClient.generateImages({ prompt: '...', model: 'dall-e-3' })
+
+// Stable Diffusion (via various providers)
+await userClient.generateImages({ prompt: '...', model: 'stabilityai/stable-diffusion-xl-base-1.0' })
+
+// Use tags for routing through LiteLLM
+await userClient.generateImages({
+  prompt: '...',
+  tags: ['fast', 'cheap']  // Route to fastest/cheapest available
+})
+```
+
 ## Next Steps
 
 Future additions:
-- Image generation
 - Audio transcription/generation
 - Function calling
 - RAG capabilities (embeddings, vector search, reranking)

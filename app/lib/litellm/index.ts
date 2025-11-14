@@ -71,4 +71,7 @@ export type {
   TextContentPart,
   ImageContentPart,
   FileContentPart,
+  ImageGenerationOptions,
+  ImageGenerationResponse,
+  GeneratedImage,
 } from './types'
