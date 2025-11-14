@@ -243,26 +243,23 @@ export interface HTTPResponse<T = any> {
 
 export type ChatRole = 'system' | 'user' | 'assistant'
 
-// Content part types for multimodal messages
+// Content part types for multimodal messages (AI SDK native format)
 export interface TextContentPart {
   type: 'text'
   text: string
 }
 
 export interface ImageContentPart {
-  type: 'image_url'
-  image_url: {
-    url: string // URL or data:image/jpeg;base64,...
-    detail?: 'low' | 'high' | 'auto' // OpenAI specific
-    format?: string // Mime type (e.g., 'image/jpeg')
-  }
+  type: 'image'
+  image: string | Uint8Array | Buffer | ArrayBuffer | URL
+  mediaType?: string // Optional IANA media type (e.g., 'image/jpeg', 'image/png')
 }
 
 export interface FileContentPart {
   type: 'file'
-  file_id?: string // URL to file
-  file_data?: string // Base64 encoded file with data URI
-  format?: string // Mime type (e.g., 'application/pdf')
+  data: string | Uint8Array | Buffer | ArrayBuffer | URL
+  mediaType: string // Required IANA media type (e.g., 'application/pdf', 'text/csv')
+  filename?: string // Optional filename
 }
 
 export type ContentPart = TextContentPart | ImageContentPart | FileContentPart

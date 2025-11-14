@@ -314,7 +314,7 @@ const response = await userClient.chat({
   messages: [
     createMultimodalMessage(
       "What's in this image?",
-      [image('https://example.com/photo.jpg')]
+      [image('https://example.com/photo.jpg', 'image/jpeg')]
     )
   ],
   tags: ['vision']
@@ -334,14 +334,14 @@ const response = await userClient.chat({
   ]
 })
 
-// Multiple images with high detail
+// Multiple images
 const response = await userClient.chat({
   messages: [
     createMultimodalMessage(
       "Compare these screenshots",
       [
-        image('https://example.com/before.png', { detail: 'high' }),
-        image('https://example.com/after.png', { detail: 'high' })
+        image('https://example.com/before.png', 'image/png'),
+        image('https://example.com/after.png', 'image/png')
       ]
     )
   ]
@@ -358,7 +358,7 @@ const response = await userClient.chat({
   messages: [
     createMultimodalMessage(
       "Summarize this document",
-      [file('https://example.com/report.pdf')]
+      [file('https://example.com/report.pdf', 'application/pdf', 'report.pdf')]
     )
   ],
   tags: ['quality']
@@ -369,7 +369,7 @@ const response = await userClient.chat({
   messages: [
     createMultimodalMessage(
       "Extract key points from this PDF",
-      [fileFromBase64(pdfBase64, 'application/pdf')]
+      [fileFromBase64(pdfBase64, 'application/pdf', 'document.pdf')]
     )
   ]
 })

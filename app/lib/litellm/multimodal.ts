@@ -26,28 +26,22 @@ export function text(content: string): TextContentPart {
  * Create an image content part from URL
  *
  * @param url - Image URL or data URI (data:image/jpeg;base64,...)
- * @param options - Optional settings
+ * @param mediaType - Optional IANA media type (e.g., 'image/jpeg', 'image/png')
  *
  * @example
  * ```typescript
- * image('https://example.com/photo.jpg')
- * image('data:image/jpeg;base64,...', { detail: 'high' })
+ * image('https://example.com/photo.jpg', 'image/jpeg')
+ * image('data:image/jpeg;base64,...')
  * ```
  */
 export function image(
   url: string,
-  options?: {
-    detail?: 'low' | 'high' | 'auto'
-    format?: string
-  }
+  mediaType?: string
 ): ImageContentPart {
   return {
-    type: 'image_url',
-    image_url: {
-      url,
-      detail: options?.detail,
-      format: options?.format,
-    },
+    type: 'image',
+    image: url,
+    mediaType,
   }
 }
 
@@ -55,29 +49,22 @@ export function image(
  * Create an image content part from base64 data
  *
  * @param base64Data - Base64 encoded image string (without data URI prefix)
- * @param mimeType - Image mime type (e.g., 'image/jpeg', 'image/png')
- * @param options - Optional settings
+ * @param mediaType - Image IANA media type (e.g., 'image/jpeg', 'image/png')
  *
  * @example
  * ```typescript
  * imageFromBase64(base64String, 'image/jpeg')
- * imageFromBase64(base64String, 'image/png', { detail: 'high' })
+ * imageFromBase64(base64String, 'image/png')
  * ```
  */
 export function imageFromBase64(
   base64Data: string,
-  mimeType: string = 'image/jpeg',
-  options?: {
-    detail?: 'low' | 'high' | 'auto'
-  }
+  mediaType: string = 'image/jpeg'
 ): ImageContentPart {
   return {
-    type: 'image_url',
-    image_url: {
-      url: `data:${mimeType};base64,${base64Data}`,
-      detail: options?.detail,
-      format: mimeType,
-    },
+    type: 'image',
+    image: `data:${mediaType};base64,${base64Data}`,
+    mediaType,
   }
 }
 
@@ -85,24 +72,25 @@ export function imageFromBase64(
  * Create a file content part from URL
  *
  * @param url - File URL
- * @param options - Optional settings
+ * @param mediaType - Required IANA media type (e.g., 'application/pdf', 'text/csv')
+ * @param filename - Optional filename
  *
  * @example
  * ```typescript
- * file('https://example.com/document.pdf')
- * file('https://example.com/report.pdf', { format: 'application/pdf' })
+ * file('https://example.com/document.pdf', 'application/pdf')
+ * file('https://example.com/report.pdf', 'application/pdf', 'report.pdf')
  * ```
  */
 export function file(
   url: string,
-  options?: {
-    format?: string
-  }
+  mediaType: string,
+  filename?: string
 ): FileContentPart {
   return {
     type: 'file',
-    file_id: url,
-    format: options?.format,
+    data: url,
+    mediaType,
+    filename,
   }
 }
 
@@ -110,22 +98,25 @@ export function file(
  * Create a file content part from base64 data
  *
  * @param base64Data - Base64 encoded file string (without data URI prefix)
- * @param mimeType - File mime type (e.g., 'application/pdf')
+ * @param mediaType - File IANA media type (e.g., 'application/pdf', 'text/csv')
+ * @param filename - Optional filename
  *
  * @example
  * ```typescript
- * fileFromBase64(base64String, 'application/pdf')
- * fileFromBase64(csvBase64, 'text/csv')
+ * fileFromBase64(base64String, 'application/pdf', 'document.pdf')
+ * fileFromBase64(csvBase64, 'text/csv', 'data.csv')
  * ```
  */
 export function fileFromBase64(
   base64Data: string,
-  mimeType: string = 'application/pdf'
+  mediaType: string = 'application/pdf',
+  filename?: string
 ): FileContentPart {
   return {
     type: 'file',
-    file_data: `data:${mimeType};base64,${base64Data}`,
-    format: mimeType,
+    data: `data:${mediaType};base64,${base64Data}`,
+    mediaType,
+    filename,
   }
 }
 
