@@ -300,6 +300,118 @@ All Vercel AI SDK parameters are supported:
 - `stop`: Stop sequences
 - `seed`: Deterministic output seed
 
+### Multimodal Chat (Images & Files)
+
+The client supports vision models and document understanding using simple utility functions:
+
+#### Images
+
+```typescript
+import { image, imageFromBase64, createMultimodalMessage } from '@/lib/litellm'
+
+// From URL
+const response = await userClient.chat({
+  messages: [
+    createMultimodalMessage(
+      "What's in this image?",
+      [image('https://example.com/photo.jpg')]
+    )
+  ],
+  tags: ['vision']
+})
+
+// From base64
+const response = await userClient.chat({
+  messages: [
+    {
+      role: 'user',
+      content: [
+        { type: 'text', text: "Describe these images" },
+        imageFromBase64(base64String1, 'image/jpeg'),
+        imageFromBase64(base64String2, 'image/png')
+      ]
+    }
+  ]
+})
+
+// Multiple images with high detail
+const response = await userClient.chat({
+  messages: [
+    createMultimodalMessage(
+      "Compare these screenshots",
+      [
+        image('https://example.com/before.png', { detail: 'high' }),
+        image('https://example.com/after.png', { detail: 'high' })
+      ]
+    )
+  ]
+})
+```
+
+#### Files (PDFs, Documents)
+
+```typescript
+import { file, fileFromBase64 } from '@/lib/litellm'
+
+// PDF from URL
+const response = await userClient.chat({
+  messages: [
+    createMultimodalMessage(
+      "Summarize this document",
+      [file('https://example.com/report.pdf')]
+    )
+  ],
+  tags: ['quality']
+})
+
+// PDF from base64
+const response = await userClient.chat({
+  messages: [
+    createMultimodalMessage(
+      "Extract key points from this PDF",
+      [fileFromBase64(pdfBase64, 'application/pdf')]
+    )
+  ]
+})
+```
+
+#### Text Files (CSV, TXT, RTF)
+
+For text-based files, convert to text and include directly:
+
+```typescript
+import { fileFromText } from '@/lib/litellm'
+
+// CSV data
+const csvContent = `Name,Age,City
+John,30,NYC
+Jane,25,LA`
+
+const response = await userClient.chat({
+  messages: [
+    {
+      role: 'user',
+      content: [
+        { type: 'text', text: 'Analyze this CSV data:\n\n' + csvContent }
+      ]
+    }
+  ]
+})
+```
+
+#### Helper Utilities
+
+```typescript
+import { getMimeType, bufferToBase64 } from '@/lib/litellm'
+
+// Get mime type from filename
+const mimeType = getMimeType('photo.jpg') // 'image/jpeg'
+const mimeType2 = getMimeType('document.pdf') // 'application/pdf'
+
+// Convert file buffer to base64 (Node.js)
+const base64 = bufferToBase64(fileBuffer)
+```
+
 ## Next Steps
 
 Future additions:

@@ -37,6 +37,19 @@ export { LiteLLMClient, UserLiteLLMClient } from './client'
 // Cache implementations
 export { MemoryCache, NoCache } from './cache'
 
+// Multimodal utilities
+export {
+  text,
+  image,
+  imageFromBase64,
+  file,
+  fileFromBase64,
+  fileFromText,
+  createMultimodalMessage,
+  bufferToBase64,
+  getMimeType,
+} from './multimodal'
+
 // Types
 export type {
   LiteLLMConfig,
@@ -54,4 +67,8 @@ export type {
   ChatResponse,
   ChatUsage,
   ChatRole,
+  ContentPart,
+  TextContentPart,
+  ImageContentPart,
+  FileContentPart,
 } from './types'
